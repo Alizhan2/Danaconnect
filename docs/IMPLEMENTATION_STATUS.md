@@ -9,7 +9,7 @@
 - [Мобильная приёмка](VERIFICATION_2026-10-03.md): 118 API / 58 frontend checks, RU/KK/EN mobile navigation, календарь/privacy, локальный private file и дополнительные browser flows. Браузерное сохранение JSON/ICS отдельно не подтверждено.
 - [Восстановление и конкуренция](RECOVERY_AND_LOAD_2026-10-03.md): рабочая READ ONLY PostgreSQL snapshot восстановлена в новую локальную PostgreSQL 18.6; все строки 48 таблиц совпали. Проверены encryption/decryption и locale metadata; зафиксировано isolated Windows LC exception. Synthetic recovery файлов/keyring прошёл 6 тестов.
 - PostgreSQL pilot: 20 concurrent clients, 280 HTTP, 37 invariants, 0 transport/5xx; исправлена post-lock проверка active/deleted расписания. Это локальная проверка, не Vercel capacity/SLA. Добавлена отдельная CI job с PostgreSQL 18.6.
-- Полный локальный API: 192 passed; после расширения locale/outage-aware CLI его 91 focused checks тоже прошли. Release/CI результаты — в отчёте этапа. Основной блокер реальной регистрации остаётся юридическое утверждение документов.
+- Полный локальный API: 192 passed; после расширения locale/outage-aware CLI его 91 focused checks тоже прошли. Финальный [CI выпуска `defd65b`](https://github.com/Alizhan2/Danaconnect/actions/runs/37056081804): **233 API / 58 frontend**, PostgreSQL pilot и обе frontend сборки успешны. В Vercel опубликован `dpl_EndKMzxfwrhci8d75TQ5QYz636LD`; подробности — в отчёте этапа. Основной блокер реальной регистрации остаётся юридическое утверждение документов.
 
 ## Подтверждённая проверка — 2 октября 2026
 

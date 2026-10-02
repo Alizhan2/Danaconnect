@@ -1,0 +1,499 @@
+{
+  "generated_at": "2026-10-02T19:45:13.813103+00:00",
+  "scope": "Synthetic local PostgreSQL + HTTP API; not production or cloud capacity",
+  "authentication": "Synthetic persisted sessions; normal API authentication dependencies",
+  "percentile_method": "nearest rank",
+  "concurrent_http_clients": 20,
+  "read_rounds": 5,
+  "calendar_workers": 4,
+  "fixture_users": 24,
+  "runtime": {
+    "server_version": "18.6 (Debian 18.6-1.pgdg13+2)",
+    "server_version_num": "180006",
+    "transaction_isolation": "read committed",
+    "max_connections": 100,
+    "database": "dc_pilot_load_ci",
+    "endpoint": "literal loopback",
+    "schema": "public",
+    "statement_timeout_ms": 20000,
+    "lock_timeout_ms": 10000,
+    "encoding": "UTF8",
+    "locale_provider": "b",
+    "datlocale": "C.UTF-8",
+    "lc_collate": "en_US.utf8",
+    "lc_ctype": "en_US.utf8",
+    "collation_version_recorded": "1",
+    "collation_version_actual": "1",
+    "locale_provider_name": "builtin",
+    "migration_revision": "0e82eab8e5ef",
+    "table_count": 48
+  },
+  "source_sha256": {
+    "scripts/verification/postgres_load.py": "9a5274ea47a3ba3538f7cc48b4cde92dc1a14dc99a1646aac09368bba7d8e5da",
+    "apps/api/app/jobs_calendar.py": "8c0dd21fb52bdfe1137b64a912e3c3bd02c1b4bc229aa30456de43c876ab7042",
+    "apps/api/app/routers/bookings.py": "c9789a0308ff298368c16a9f9a62439a8d008241a6d3a43b7bfaf0bc73064746",
+    "apps/api/app/routers/projects.py": "506b4427f222536bc09716189588e70e066579510e66c03e2ce8f210ca65b014",
+    "apps/api/app/routers/calendar_rules.py": "c02c09f6f64ed774d2237394ddae5cdee7b6b8cc15e2520b7c3a46d5cc4b4c30",
+    "apps/api/app/models.py": "fe3eb05710a0d35e211b81b823c2c31e12429f1060d3f6a96f85532322c004a7"
+  },
+  "aggregate": {
+    "requests": 280,
+    "statuses": {
+      "200": 126,
+      "201": 72,
+      "409": 82
+    },
+    "transport_errors": 0,
+    "server_errors": 0,
+    "latency_ms": {
+      "p50": 238.43,
+      "p95": 428.66,
+      "max": 545.45
+    },
+    "elapsed_seconds": 4.743,
+    "requests_per_second": 59.03
+  },
+  "read_latency_ms": {
+    "p50": 138.97,
+    "p95": 258.81,
+    "max": 273.7
+  },
+  "scenarios": [
+    {
+      "name": "reads_1",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 227.54,
+        "p95": 269.17,
+        "max": 273.7
+      },
+      "elapsed_seconds": 0.298,
+      "requests_per_second": 67.21
+    },
+    {
+      "name": "reads_2",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 111.52,
+        "p95": 159.86,
+        "max": 163.85
+      },
+      "elapsed_seconds": 0.169,
+      "requests_per_second": 118.67
+    },
+    {
+      "name": "reads_3",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 134.54,
+        "p95": 181.06,
+        "max": 188.54
+      },
+      "elapsed_seconds": 0.192,
+      "requests_per_second": 104.04
+    },
+    {
+      "name": "reads_4",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 123.54,
+        "p95": 162.75,
+        "max": 162.99
+      },
+      "elapsed_seconds": 0.172,
+      "requests_per_second": 116.32
+    },
+    {
+      "name": "reads_5",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 117.47,
+        "p95": 161.14,
+        "max": 164.89
+      },
+      "elapsed_seconds": 0.172,
+      "requests_per_second": 116.45
+    },
+    {
+      "name": "competing_booking_same_slot",
+      "requests": 20,
+      "statuses": {
+        "201": 1,
+        "409": 19
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 316.46,
+        "p95": 403.18,
+        "max": 404.9
+      },
+      "elapsed_seconds": 0.413,
+      "requests_per_second": 48.44
+    },
+    {
+      "name": "idempotent_booking_repeat",
+      "requests": 20,
+      "statuses": {
+        "201": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 264.49,
+        "p95": 340.24,
+        "max": 343.55
+      },
+      "elapsed_seconds": 0.355,
+      "requests_per_second": 56.34
+    },
+    {
+      "name": "competing_slot_create",
+      "requests": 20,
+      "statuses": {
+        "201": 1,
+        "409": 19
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 215.85,
+        "p95": 257.11,
+        "max": 259.68
+      },
+      "elapsed_seconds": 0.272,
+      "requests_per_second": 73.56
+    },
+    {
+      "name": "same_mentee_competing_mentors",
+      "requests": 20,
+      "statuses": {
+        "409": 10,
+        "201": 10
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 250.49,
+        "p95": 337.38,
+        "max": 342.2
+      },
+      "elapsed_seconds": 0.351,
+      "requests_per_second": 56.97
+    },
+    {
+      "name": "mentor_capacity_pending_creation",
+      "requests": 20,
+      "statuses": {
+        "201": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 292.96,
+        "p95": 428.66,
+        "max": 435.07
+      },
+      "elapsed_seconds": 0.446,
+      "requests_per_second": 44.81
+    },
+    {
+      "name": "mentor_capacity_competing_accepts",
+      "requests": 20,
+      "statuses": {
+        "200": 3,
+        "409": 17
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 319.56,
+        "p95": 408.01,
+        "max": 422.73
+      },
+      "elapsed_seconds": 0.428,
+      "requests_per_second": 46.73
+    },
+    {
+      "name": "project_capacity_pending_creation",
+      "requests": 20,
+      "statuses": {
+        "201": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 347.94,
+        "p95": 524.86,
+        "max": 545.45
+      },
+      "elapsed_seconds": 0.551,
+      "requests_per_second": 36.3
+    },
+    {
+      "name": "project_capacity_competing_accepts",
+      "requests": 20,
+      "statuses": {
+        "200": 3,
+        "409": 17
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 373.63,
+        "p95": 510.32,
+        "max": 519.61
+      },
+      "elapsed_seconds": 0.531,
+      "requests_per_second": 37.66
+    },
+    {
+      "name": "recurring_regeneration_with_workers",
+      "requests": 20,
+      "statuses": {
+        "200": 20
+      },
+      "transport_errors": 0,
+      "server_errors": 0,
+      "latency_ms": {
+        "p50": 287.03,
+        "p95": 373.47,
+        "max": 384.57
+      },
+      "elapsed_seconds": 0.393,
+      "requests_per_second": 50.95,
+      "calendar_workers": [
+        {
+          "processed": 1,
+          "created": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        {
+          "processed": 1,
+          "created": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        {
+          "processed": 1,
+          "created": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        {
+          "processed": 1,
+          "created": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      ]
+    }
+  ],
+  "invariants": [
+    {
+      "name": "reads_1: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "reads all return 200, round 1",
+      "passed": true
+    },
+    {
+      "name": "reads_2: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "reads all return 200, round 2",
+      "passed": true
+    },
+    {
+      "name": "reads_3: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "reads all return 200, round 3",
+      "passed": true
+    },
+    {
+      "name": "reads_4: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "reads all return 200, round 4",
+      "passed": true
+    },
+    {
+      "name": "reads_5: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "reads all return 200, round 5",
+      "passed": true
+    },
+    {
+      "name": "competing_booking_same_slot: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "same slot: exactly one successful reservation",
+      "passed": true,
+      "successful": 1
+    },
+    {
+      "name": "same slot: one scheduled DB row and booked slot",
+      "passed": true,
+      "scheduled_rows": 1
+    },
+    {
+      "name": "idempotent_booking_repeat: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "booking retries return the same reservation",
+      "passed": true
+    },
+    {
+      "name": "competing_slot_create: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "same interval: one slot, all competitors conflict",
+      "passed": true
+    },
+    {
+      "name": "same_mentee_competing_mentors: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "a mentee gets one meeting across overlapping mentors",
+      "passed": true,
+      "scheduled_rows": 1
+    },
+    {
+      "name": "overlap retries share one booking, other mentor conflicts",
+      "passed": true
+    },
+    {
+      "name": "mentor_capacity_pending_creation: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "mentor_capacity: all pending applications created",
+      "passed": true
+    },
+    {
+      "name": "mentor_capacity_competing_accepts: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "mentor_capacity: exactly capacity=3 accepted, other requests conflict",
+      "passed": true,
+      "successful": 3
+    },
+    {
+      "name": "mentor_capacity: DB participation/application/conversation rows each equal 3",
+      "passed": true,
+      "participations": 3,
+      "accepted_applications": 3,
+      "conversations": 3
+    },
+    {
+      "name": "project_capacity_pending_creation: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "project_capacity: all pending applications created",
+      "passed": true
+    },
+    {
+      "name": "project_capacity_competing_accepts: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "project_capacity: exactly capacity=3 accepted, other requests conflict",
+      "passed": true,
+      "successful": 3
+    },
+    {
+      "name": "project_capacity: DB participation/application/conversation rows each equal 3",
+      "passed": true,
+      "participations": 3,
+      "accepted_applications": 3,
+      "conversations": 3
+    },
+    {
+      "name": "project shared seat invariant",
+      "passed": true,
+      "occupied": 3
+    },
+    {
+      "name": "recurring_regeneration_with_workers: workers have no generation errors",
+      "passed": true
+    },
+    {
+      "name": "recurring_regeneration_with_workers: no transport/server errors",
+      "passed": true
+    },
+    {
+      "name": "repeated generation creates no additional slots",
+      "passed": true
+    },
+    {
+      "name": "recurrence: occurrence keys and active slots stay unique",
+      "passed": true,
+      "initial": 8,
+      "linked": 8,
+      "active_slots": 8,
+      "distinct_occurrences": 8
+    },
+    {
+      "name": "worker rechecks rule active after acquiring mentor lock",
+      "passed": true,
+      "generation_calls_after_retirement": 0,
+      "worker": {
+        "processed": 0,
+        "created": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    },
+    {
+      "name": "providers remain disabled: no email outbox rows",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "total_elapsed_seconds": 7.518,
+  "limitations": [
+    "Single local Uvicorn process and one local PostgreSQL instance",
+    "Small synthetic dataset; latency includes client, network and DB work",
+    "No real mail, OAuth, private storage, or Vercel execution measured",
+    "Authentication challenges/MFA and browser UI are outside this pilot"
+  ]
+}

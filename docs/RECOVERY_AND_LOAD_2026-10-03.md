@@ -79,7 +79,11 @@ URL file хранит только подключение к буквально�
 - Полный локальный API прогон: **192 passed**, 436.54 sec, 0 failed; один существующий Starlette TestClient/httpx deprecation warning. После добавления locale/outage cases отдельный полный набор backup CLI: **91 passed**; эти случаи также включены в CI.
 - Frontend: **58 passed** (23 основные, 16 даты, 15 downloads, 4 navigation). Frontend source в этом этапе не менялся.
 - Все 37 concurrency invariants повторены после изменения worker и на source-compatible builtin locale.
-- Release commit, CI и результат публикации добавляются после выполнения выпуска.
+- Функциональный выпуск: **`defd65be94c8175e8e527a9c3c3c05c5e808fe3e`**. [GitHub Actions](https://github.com/Alizhan2/Danaconnect/actions/runs/37056081804) успешно завершил **4 jobs**: API (**233 passed**, 31.91 sec), PostgreSQL pilot (**280 HTTP / 37 checks**), web и admin. Обе frontend TypeScript/production build проверки прошли.
+- Vercel Production **`dpl_EndKMzxfwrhci8d75TQ5QYz636LD`**, **READY**, [выпуск](https://danaconnect-an0fsgw7y-alizhan695-7132.vercel.app), alias [платформа](https://danaconnect.vercel.app/) / [админка](https://danaconnect.vercel.app/admin). Облачные сборки трёх services прошли; новый PostgreSQL migration не требовался.
+- После публикации **54/54 anonymous HTTP checks** прошли: страницы, API readiness, защитные заголовки и отказы закрытых API. Единственный POST содержит пустое тело/недопустимый Origin и отклонён до запроса письма. [Safe HTTP evidence](verification/production-http-recovery-2026-10-03.json).
+- Worker проверен **READ ONLY 3 октября, 00:50:43 Asia/Oral**: status success, finished **00:50:07**, age **36.49 sec**. Цикл завершён после подтверждения публикации (**00:48:35**). Это наблюдение указанного цикла, не непрерывный мониторинг. [Safe worker snapshot](verification/worker-recovery-release-2026-10-03.json).
+- CI PostgreSQL service повторил **280 HTTP / 37 checks** на Linux, UTF8/builtin/C.UTF-8 с recorded/actual version 1: [полный CI JSON](verification/postgres-load-ci-2026-10-03.json). Локальный 55432 server остановлен с exit 0; private cluster/archives сохранены.
 
 ## 6. Что ещё требуется для эксплуатации
 

@@ -1,0 +1,945 @@
+{
+  "observed_at_utc": "2026-10-02T19:48:48.103402+00:00",
+  "origin": "https://danaconnect.vercel.app",
+  "scope": "Anonymous read-only HTTP requests plus rejected invalid-origin empty request; no email, credentials, personal data, or authenticated changes",
+  "requests": [
+    {
+      "path": "/",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17147
+    },
+    {
+      "path": "/catalog",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 8996
+    },
+    {
+      "path": "/projects",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 12045
+    },
+    {
+      "path": "/showcase",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 11350
+    },
+    {
+      "path": "/login",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 8977
+    },
+    {
+      "path": "/register",
+      "method": "GET",
+      "expected_status": 404,
+      "status_code": 404,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "body_bytes": 9922
+    },
+    {
+      "path": "/profile",
+      "method": "GET",
+      "expected_status": 404,
+      "status_code": 404,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "body_bytes": 9922
+    },
+    {
+      "path": "/calendar",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17645
+    },
+    {
+      "path": "/messages",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17640
+    },
+    {
+      "path": "/admin",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16508
+    },
+    {
+      "path": "/admin/login",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 6395
+    },
+    {
+      "path": "/admin/registrations",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17092
+    },
+    {
+      "path": "/admin/directions",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16985
+    },
+    {
+      "path": "/admin/documents",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16979
+    },
+    {
+      "path": "/admin/operations",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16996
+    },
+    {
+      "path": "/api/v1/health",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "d116f198-0a7c-4b35-a406-b2621153a05c"
+      },
+      "body_bytes": 60,
+      "public_flags": {
+        "status": "ok",
+        "environment": "production",
+        "demo_mode": false
+      }
+    },
+    {
+      "path": "/api/v1/ready",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "519ceab1-fdad-4613-a1a0-62bb1dcd9770"
+      },
+      "body_bytes": 18,
+      "public_flags": {
+        "status": "ready"
+      }
+    },
+    {
+      "path": "/api/v1/auth/providers",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "1970b2d2-5bf3-4340-96ca-74aed530f28f"
+      },
+      "body_bytes": 45,
+      "public_flags": {
+        "email": true,
+        "google": true
+      }
+    },
+    {
+      "path": "/api/v1/directions",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "ed3469b9-eb74-4f02-9e50-cce2d21835ce"
+      },
+      "body_bytes": 515,
+      "public_list_count": 3
+    },
+    {
+      "path": "/api/v1/documents",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "3327cd05-89db-4e4c-a372-1b41c7fd4590"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/api/v1/mentors",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "9601736d-29d9-4723-abe5-0098eeed7620"
+      },
+      "body_bytes": 2,
+      "public_list_count": 0
+    },
+    {
+      "path": "/api/v1/projects",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "fd6254c4-5668-4607-9d61-c9b9461529de"
+      },
+      "body_bytes": 2,
+      "public_list_count": 0
+    },
+    {
+      "path": "/api/v1/showcase",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "0c784cf9-3383-4472-af1b-a041bb35d324"
+      },
+      "body_bytes": 2,
+      "public_list_count": 0
+    },
+    {
+      "path": "/api/v1/stats",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "b6d1bace-2c1a-4ee8-9314-7368c121e85b"
+      },
+      "body_bytes": 167
+    },
+    {
+      "path": "/api/v1/auth/me",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "0434f48d-8cfe-4218-b3ba-0879c9806c27"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/api/v1/admin/me",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "617a49e9-9b39-4e66-99b6-c6398b46d4c5"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/api/v1/admin/operations",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "2df3aef5-1766-4670-83c7-a5d99d061767"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/api/v1/internal/jobs",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "161c34ac-04a2-4f3c-973d-aa0175b208d3"
+      },
+      "body_bytes": 33
+    },
+    {
+      "path": "/api/v1/ai/status",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "a0d75ffa-88dc-44df-bc48-32f16494f9c4"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/api/v1/messages/unread-summary",
+      "method": "GET",
+      "expected_status": 401,
+      "status_code": 401,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "a39dfe0d-6487-4f5d-8a8c-552b99a37b62"
+      },
+      "body_bytes": 45
+    },
+    {
+      "path": "/achievements",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17692
+    },
+    {
+      "path": "/dashboard",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 9000
+    },
+    {
+      "path": "/impact",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 11357
+    },
+    {
+      "path": "/notifications",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17640
+    },
+    {
+      "path": "/onboarding",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17699
+    },
+    {
+      "path": "/privacy",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17684
+    },
+    {
+      "path": "/recommendations",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17754
+    },
+    {
+      "path": "/resources",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 11796
+    },
+    {
+      "path": "/support",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16559
+    },
+    {
+      "path": "/team",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17671
+    },
+    {
+      "path": "/projects/new",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 18060
+    },
+    {
+      "path": "/admin/activity",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17003
+    },
+    {
+      "path": "/admin/ai-review",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17003
+    },
+    {
+      "path": "/admin/analytics",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16979
+    },
+    {
+      "path": "/admin/audit",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16984
+    },
+    {
+      "path": "/admin/comments",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17200
+    },
+    {
+      "path": "/admin/growth",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16971
+    },
+    {
+      "path": "/admin/launch",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16988
+    },
+    {
+      "path": "/admin/privacy",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16983
+    },
+    {
+      "path": "/admin/projects",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17097
+    },
+    {
+      "path": "/admin/reports",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 17099
+    },
+    {
+      "path": "/admin/results",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16977
+    },
+    {
+      "path": "/admin/users",
+      "method": "GET",
+      "expected_status": 200,
+      "status_code": 200,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "access-control-allow-origin": "*"
+      },
+      "html_headers_match": true,
+      "body_bytes": 16971
+    },
+    {
+      "path": "/api/v1/auth/request-code",
+      "method": "POST",
+      "invalid_origin": true,
+      "body_has_no_identity": true,
+      "status_code": 403,
+      "expected_status": 403,
+      "expected_status_matches": true,
+      "headers": {
+        "content-type": "application/json",
+        "x-content-type-options": "nosniff",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-request-id": "4e030557-9a85-49a9-bc33-00c998507256"
+      }
+    }
+  ]
+}
