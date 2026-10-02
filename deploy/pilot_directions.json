@@ -1,0 +1,5 @@
+[
+  {"slug":"it","name_ru":"IT","name_kk":"IT","name_en":"IT","active":true},
+  {"slug":"psychology","name_ru":"Психология","name_kk":"Психология","name_en":"Psychology","active":true},
+  {"slug":"education","name_ru":"Образование","name_kk":"Білім беру","name_en":"Education","active":true}
+]

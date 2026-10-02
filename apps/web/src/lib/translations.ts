@@ -2,6 +2,45 @@ import { growthTranslations } from "@/components/growth/translations";
 /** Russian source phrases map to Kazakh and English. User-generated text is never passed here. */
 export const phraseTranslations: Record<string, readonly [string, string]> = {
   ...growthTranslations,
+  "Добавьте хотя бы одну ссылку на ваш опыт.": [
+    "Тәжірибеңізді растайтын кем дегенде бір сілтеме қосыңыз.",
+    "Add at least one link showing your experience.",
+  ],
+  "Можно добавить не более 10 ссылок.": [
+    "10 сілтемеден артық қосуға болмайды.",
+    "You can add up to 10 links.",
+  ],
+  "Укажите полный адрес сайта, например https://github.com/username. Каждая ссылка — с новой строки.": [
+    "Сайттың толық мекенжайын енгізіңіз, мысалы https://github.com/username. Әр сілтемені жаңа жолға жазыңыз.",
+    "Enter a full website address, such as https://github.com/username. Put each link on a new line.",
+  ],
+  "Ссылки на LinkedIn, GitHub, портфолио или публикации — по одной в строке, до 10. Видны только команде проверки.": [
+    "LinkedIn, GitHub, портфолио немесе жарияланымдарға сілтемелерді әр жолға біреуден енгізіңіз, ең көбі 10. Тек тексеру командасына көрінеді.",
+    "Link to LinkedIn, GitHub, your portfolio or publications, one per line, up to 10. Only the review team can see them.",
+  ],
+  "Сколько менти готовы вести одновременно": [
+    "Бір мезгілде қанша ментиге тәлімгерлік ете аласыз",
+    "How many mentees can you support at once",
+  ],
+  "Например, 3 — до трёх менти одновременно. 0 — свободных мест нет.": [
+    "Мысалы, 3 — бір мезгілде үш ментиге дейін. 0 — бос орын жоқ.",
+    "For example, 3 means up to three mentees at once. 0 means no places available.",
+  ],
+  "Направления пока не открыты. Команда платформы готовит список. Вы сможете завершить анкету, когда он появится.": [
+    "Бағыттар әлі ашылмады. Платформа командасы тізімді дайындап жатыр. Ол пайда болғанда сауалнаманы аяқтай аласыз.",
+    "Directions are not open yet. The platform team is preparing the list. You can complete your profile once it is available.",
+  ],
+  "Обновить список направлений": [
+    "Бағыттар тізімін жаңарту", "Refresh directions",
+  ],
+  "Выберите от 1 до 10 доступных направлений.": [
+    "Қолжетімді бағыттардың 1–10-ын таңдаңыз.",
+    "Select between 1 and 10 available directions.",
+  ],
+  "Сначала дождитесь открытия направлений. После сохранения профиля здесь появятся документы для вашей роли.": [
+    "Алдымен бағыттардың ашылуын күтіңіз. Профильді сақтағаннан кейін рөліңізге арналған құжаттар осында пайда болады.",
+    "Wait for directions to open first. After you save your profile, documents for your role will appear here.",
+  ],
   "Начало расписания должно быть в пределах следующего года": [
     "Кестенің басталуы келесі жыл шегінде болуы керек",
     "The schedule must start within the next year",

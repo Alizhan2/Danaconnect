@@ -16,6 +16,23 @@ import {
   useAction,
   useLoad,
 } from "@/components/workflows/common";
+
+function evidenceProblem(values: string[]) {
+  const links = values.map((value) => value.trim()).filter(Boolean);
+  if (!links.length) return "Добавьте хотя бы одну ссылку на ваш опыт.";
+  if (links.length > 10) return "Можно добавить не более 10 ссылок.";
+  for (const link of links) {
+    try {
+      const url = new URL(link);
+      if (!["http:", "https:"].includes(url.protocol) || link.length > 2083)
+        return "Укажите полный адрес сайта, например https://github.com/username. Каждая ссылка — с новой строки.";
+    } catch {
+      return "Укажите полный адрес сайта, например https://github.com/username. Каждая ссылка — с новой строки.";
+    }
+  }
+  return "";
+}
+
 export default function OnboardingPage() {
   const { t, locale, tr } = useLocale();
   const { health } = usePlatformStatus();
@@ -53,6 +70,16 @@ export default function OnboardingPage() {
     event.preventDefault();
     if (!draft) return;
     await action.run(async () => {
+      const availableDirections = load.data?.directions ?? [];
+      if (!availableDirections.length)
+        throw new Error("Направления пока не открыты. Команда платформы готовит список. Вы сможете завершить анкету, когда он появится.");
+      if (!draft.direction_ids.length || draft.direction_ids.length > 10 ||
+          draft.direction_ids.some((id) => !availableDirections.some((direction) => direction.id === id)))
+        throw new Error("Выберите от 1 до 10 доступных направлений.");
+      if (draft.role === "mentor") {
+        const problem = evidenceProblem(draft.evidence_urls || []);
+        if (problem) throw new Error(problem);
+      }
       await mutate(
         "/me/profile",
         {
@@ -96,6 +123,8 @@ export default function OnboardingPage() {
   );
   const required =
     load.data?.documents.filter((document) => document.required) ?? [];
+  const directionsUnavailable = !load.data?.directions.length;
+  const evidenceError = draft?.role === "mentor" ? evidenceProblem(draft.evidence_urls || []) : "";
   return (
     <AppShell
       title={tr("Профиль и регистрация")}
@@ -237,20 +266,27 @@ export default function OnboardingPage() {
                     <Field
                       label={tr("Ссылки на опыт")}
                       hint={tr(
-                        "По одной ссылке https:// в каждой строке. Видны команде проверки.",
+                        "Ссылки на LinkedIn, GitHub, портфолио или публикации — по одной в строке, до 10. Видны только команде проверки.",
                       )}
                     >
                       <textarea
                         required
+                        placeholder={"https://www.linkedin.com/in/username\nhttps://github.com/username"}
+                        aria-invalid={Boolean(evidenceError && draft.evidence_urls?.some((value) => value.trim()))}
+                        aria-describedby={evidenceError ? "evidence-error" : undefined}
                         value={(draft.evidence_urls || []).join("\n")}
-                        onChange={(e) =>
-                          update("evidence_urls", e.target.value.split("\n"))
-                        }
+                        onChange={(e) => {
+                          const links = e.target.value.split("\n");
+                          e.currentTarget.setCustomValidity(tr(evidenceProblem(links)));
+                          update("evidence_urls", links);
+                        }}
                       />
+                      {evidenceError && draft.evidence_urls?.some((value) => value.trim()) &&
+                        <span id="evidence-error" className="field-hint">{tr(evidenceError)}</span>}
                     </Field>
                     <Field
-                      label={tr("Максимум участников")}
-                      hint={tr("0 означает отсутствие доступных мест")}
+                      label={tr("Сколько менти готовы вести одновременно")}
+                      hint={tr("Например, 3 — до трёх менти одновременно. 0 — свободных мест нет.")}
                     >
                       <input
                         type="number"
@@ -267,6 +303,12 @@ export default function OnboardingPage() {
                 )}
                 <fieldset className="full-width panel">
                   <legend>{tr("Направления")}</legend>
+                  {directionsUnavailable ? (
+                    <div className="notice" role="status">
+                      <p>{tr("Направления пока не открыты. Команда платформы готовит список. Вы сможете завершить анкету, когда он появится.")}</p>
+                      <Button onClick={load.reload} disabled={load.loading || action.busy} variant="secondary">{tr("Обновить список направлений")}</Button>
+                    </div>
+                  ) : <p className="field-hint">{tr("Выберите от 1 до 10 доступных направлений.")}</p>}
                   <div className="tags">
                     {load.data?.directions.map((direction) => (
                       <label className="check-row" key={direction.id}>
@@ -294,6 +336,7 @@ export default function OnboardingPage() {
                     type="submit"
                     disabled={
                       action.busy ||
+                      directionsUnavailable ||
                       draft.role === "unchosen" ||
                       !draft.direction_ids.length
                     }
@@ -377,13 +420,16 @@ export default function OnboardingPage() {
               {!load.data?.documents.length && (
                 <p>
                   {tr(
-                    "Сохраните роль и направления, чтобы получить применимые документы.",
+                    directionsUnavailable
+                      ? "Сначала дождитесь открытия направлений. После сохранения профиля здесь появятся документы для вашей роли."
+                      : "Сохраните роль и направления, чтобы получить применимые документы.",
                   )}
                 </p>
               )}
               <Button
                 disabled={
                   action.busy ||
+                  directionsUnavailable ||
                   !draft.profile_completed ||
                   !["draft", "changes_requested"].includes(
                     draft.account_status,
