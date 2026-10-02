@@ -32,9 +32,16 @@
 
 После исправления весь изолированный API-набор прошёл: **109 passed**, 0 failed, 262,74 секунды. Сохранилось одно ранее известное предупреждение Starlette/httpx. Фронтенд в этом исправлении не изменён; результаты его прежних 22 проверок и обеих сборок остаются в основном отчёте.
 
+## Публикация исправления
+
+- Функциональный коммит `4023627d6e8c2a28d4a7655b7f232ea0beea5b2e` отправлен в `codex/initial-platform`.
+- [GitHub Actions](https://github.com/Alizhan2/Danaconnect/actions/runs/37048755359): API, web и admin завершены успешно, включая frontend tests, TypeScript и сборки.
+- Vercel Production `dpl_8eJWvyhwShupZ2hWFSEGkhwJQaA5` — READY; alias [danaconnect.vercel.app](https://danaconnect.vercel.app). После публикации все 54 облачные HTTP-проверки прошли. Страница рабочего входа визуально открылась; формы входа в production не отправлялись.
+- Worker наблюдался READ ONLY 2 октября в 23:39:41 Asia/Oral: success, последний завершённый цикл 23:38:04, возраст 97 секунд. Это снимок состояния, а не постоянное наблюдение.
+
 ## Сохранённые доказательства
 
-Локально, вне Git и Vercel: `artifacts/verification/browser-booked.png`, `browser-chat-fixed.png`, `browser-chat-fixed.txt`, `browser-result-admin.png`, `browser-result-admin.txt`, `browser-data-evidence.json`. Последний файл получен прямым READ ONLY чтением только именованной учебной SQLite. Полный API-прогон сохранён в `api-browser-followup.txt`.
+Локально, вне Git и Vercel: `artifacts/verification/browser-booked.png`, `browser-chat-fixed.png`, `browser-chat-fixed.txt`, `browser-mentor-dialogs-fixed.png`, `browser-mentor-dialogs-fixed.txt`, `browser-result-admin.png`, `browser-result-admin.txt`, `browser-data-evidence.json`. После перезапуска видны разные названия всех трёх бесед ментора. JSON получен прямым READ ONLY чтением только именованной учебной SQLite. Полный API-прогон сохранён в `api-browser-followup.txt`.
 
 ## Что этим не подтверждено
 

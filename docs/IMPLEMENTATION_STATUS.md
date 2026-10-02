@@ -10,10 +10,10 @@
 
 - **102 API-теста и 22 frontend-проверки** прошли; оба интерфейса прошли TypeScript и production build. GitHub Actions включает тесты при push/PR; три jobs коммита исправлений `82d056e789a4def0e0e3d323c3e305826782c8ae` завершились успешно.
 - В изолированной локальной среде прошли 63 HTTP-проверки интерфейсов и 236 запросов матрицы API; после публикации прошли 54 HTTP-проверки рабочего облака, включая защитные заголовки и закрытые API.
-- Последний выпуск, подтверждённый этим отчётом: **`dpl_76W15op5SYtu7r9rsEUaSYVPCUTU`**, Production READY, alias `danaconnect.vercel.app`. Последний наблюдённый worker success завершился 2 октября в **23:14:05 Asia/Oral**; это зафиксированное наблюдение, не обещание текущей свежести.
+- Последний функциональный выпуск, подтверждённый этим отчётом: **`dpl_8eJWvyhwShupZ2hWFSEGkhwJQaA5`**, Production READY, alias `danaconnect.vercel.app`, коммит `4023627`. Worker success наблюдался 2 октября в **23:39:41 Asia/Oral**, возраст 97 секунд; это зафиксированное наблюдение, не обещание текущей свежести.
 - PostgreSQL проверен READ ONLY, Gmail — SMTP AUTH и существующим письмом во входящих, Blob — отдельным приватным проверочным файлом, QStash — расписанием и успешным циклом. Новые письма, реальные участники, документы и согласия для этой проверки не создавались.
 - Локальный браузерный сценарий регистрации, MFA, модерации, заявки, сообщений, встречи/отмены, поддержки и результата пройден: [отчёт](BROWSER_VERIFICATION_2026-10-02.md). Полная браузерная приёмка, реальный Google OAuth, нагрузка на PostgreSQL и восстановление backup ещё не подтверждены.
-- При этой приёмке исправлены одинаковые названия диалогов; после исправления полный API-прогон: **109 passed**, 0 failed.
+- При этой приёмке исправлены одинаковые названия диалогов; после исправления полный API-прогон: **109 passed**, 0 failed. [GitHub Actions коммита `4023627`](https://github.com/Alizhan2/Danaconnect/actions/runs/37048755359) успешно завершил все три jobs. Облачные сборки и все 54 HTTP-проверки повторены после релиза.
 - **Главный блокер регистрации: нет утверждённых опубликованных обязательных документов.** Черновики остаются закрытыми локальными файлами; отправка реальных анкет защищённо заблокирована. Следующие действия: [LAUNCH_REMAINING.md](LAUNCH_REMAINING.md).
 
 ## Реализованный объём
@@ -60,7 +60,7 @@
 
 ## Подготовка облака
 
-**Production deployment опубликован на Hobby.** Актуальный выпуск по [отчёту проверки](VERIFICATION_2026-10-02.md) — `dpl_76W15op5SYtu7r9rsEUaSYVPCUTU`, READY, alias `danaconnect.vercel.app`. Бесплатная Neon подключена, миграция `0e82eab8e5ef` подтверждена READ ONLY; bootstrap рабочего администратора выполнен. Private Blob прошёл ограниченную файловую проверку, Gmail SMTP — STARTTLS/AUTH с подтверждением существующего входящего письма, QStash — активное расписание и успешный цикл. Google credentials заданы, Auth Platform остаётся External / Testing; реальный Google flow этим прогоном не подтверждён. История активации: [ACTIVATION_STATUS.md](ACTIVATION_STATUS.md); её ранние пометки «не проверено» читать вместе с новым отчётом.
+**Production deployment опубликован на Hobby.** Актуальный функциональный выпуск по [отчёту проверки](VERIFICATION_2026-10-02.md) — `dpl_8eJWvyhwShupZ2hWFSEGkhwJQaA5`, READY, alias `danaconnect.vercel.app`. Бесплатная Neon подключена, миграция `0e82eab8e5ef` подтверждена READ ONLY; bootstrap рабочего администратора выполнен. Private Blob прошёл ограниченную файловую проверку, Gmail SMTP — STARTTLS/AUTH с подтверждением существующего входящего письма, QStash — активное расписание и успешный цикл. Google credentials заданы, Auth Platform остаётся External / Testing; реальный Google flow этим прогоном не подтверждён. История активации: [ACTIVATION_STATUS.md](ACTIVATION_STATUS.md); её ранние пометки «не проверено» читать вместе с новым отчётом.
 
 Реализованы три Dockerfile, production Compose, отдельный Compose для внешнего worker, постоянный PostgreSQL volume, Caddy/TLS routing, private S3 configuration, генератор закрытой конфигурации и scripts запуска/readiness/backup/restore. Restore создаёт новую отдельную БД и не перезаписывает работающую. Secrets и backup исключены из Git/build/upload контекстов.
 

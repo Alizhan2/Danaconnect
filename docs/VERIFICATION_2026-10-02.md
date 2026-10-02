@@ -45,3 +45,7 @@
 - После публикации повторены 54 HTTP-проверки: все ожидаемые статусы совпали, `nosniff`, `DENY` и `strict-origin-when-cross-origin` присутствуют на всех проверенных HTML-страницах. Отчёт `artifacts/verification/production-http-after-release.json`.
 - Повторное чтение worker в транзакции READ ONLY: status success, цикл завершён 2 октября в 23:14:05 Asia/Oral, возраст 106 секунд на момент проверки. Отчёт `artifacts/verification/worker-after-release.json`.
 - Первая попытка публикации получила Not authorized; после проверки авторизации существующего аккаунта повторная CLI-публикация завершилась успешно. Защита deployment и права доступа не ослаблялись.
+
+## Продолжение браузерной приёмки
+
+Позже подключение встроенного браузера восстановлено и пройден [учебный сценарий](BROWSER_VERIFICATION_2026-10-02.md). Исправлены одинаковые названия бесед. После изменения весь API-набор — **109 passed**, 0 failed. Коммит `4023627d6e8c2a28d4a7655b7f232ea0beea5b2e`; [его GitHub Actions](https://github.com/Alizhan2/Danaconnect/actions/runs/37048755359) завершился успешно по всем трём jobs. Последний функциональный релиз — `dpl_8eJWvyhwShupZ2hWFSEGkhwJQaA5`, Production READY; все 54 HTTP-проверки повторены успешно. Новый READ ONLY снимок worker: 23:39:41 Asia/Oral, success, возраст 97 секунд.
