@@ -22,6 +22,14 @@
 - Исправлен Windows offline bootstrap: ACL enrollment привязывается к SID текущего процесса и не зависит от отсутствующих USERNAME/USER в изолированном окружении. Повторный bootstrap успешно создал администратора; MFA не ротировался.
 - Docker CLI установлен, но Linux engine сейчас недоступен. Локальная PostgreSQL этой попыткой не создана.
 
+## Подключение Google OAuth
+
+2 октября 2026 года владелец создал **DanaConnect Web**, OAuth client типа **Web application**. Client ID/secret сохранены в существующих закрытых `deploy/.env.owner-input.local` и `deploy/.env.vercel.local`; значения не включены в исходники. Структурная production validation прошла. Metadata Vercel подтвердила `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`: все три encrypted и только Production.
+
+Консоль Google подтверждает `https://danaconnect.vercel.app/api/v1/auth/google/callback` в Authorized redirect URIs. Audience — **External / Testing**. После отдельного подтверждения владельца его аккаунт добавлен в Test users; консоль подтвердила один тестовый аккаунт. Publish app заблокирован до завершения Branding; публикация OAuth app для всех не выполнялась. Локальное подтверждение сохранено в игнорируемом `artifacts/oauth-activation/google-test-user.jpg`.
+
+Production deployment `dpl_ECG8WSv6JG2q4uQwZw9DDS3eA7PB` собран с новыми настройками, сообщил **READY**, alias `https://danaconnect.vercel.app` назначен. Предыдущий deployment `dpl_97q1BC7xQgFCX9BrLoyqFaefjosE` остаётся исторической записью. Полный вход и выдача cookie через Google не проверялись; Google account consent не подтверждался агентом.
+
 ## GitHub и автоматическая публикация
 
 2 октября 2026 года исходники отправлены в предоставленный владельцем публичный репозиторий [Alizhan2/Danaconnect](https://github.com/Alizhan2/Danaconnect), первоначальная и основная ветка `codex/initial-platform`, коммит `404721b`. В первоначальный коммит включены 245 файлов. Закрытые конфигурации, локальные базы, enrollment MFA и локальные снимки экранов исключены; проверка содержимого staged files не обнаружила значения действующих секретов.
@@ -36,7 +44,7 @@
 |---|---|---|
 | PostgreSQL | Создать выделенную базу, получить TLS подключение, применить миграции к известной версии | Neon: новая база, TLS, head `0e82eab8e5ef`; опубликованный API сообщил DB ready |
 | Почтовый провайдер | Подключить отправителя и ключ SMTP/Resend, передать настройки API и worker | Gmail SMTP credentials вошли в production, расписание QStash активно; фактическая доставка ещё не подтверждена |
-| Google | Создать OAuth client приложения и настроить точный HTTPS callback | Client ID/secret отсутствуют; адрес настоящего выпуска известен |
+| Google | Создать OAuth client приложения и настроить точный HTTPS callback | DanaConnect Web создан владельцем; callback совпадает, три настройки зашифрованы в Production. Google External / Testing; аккаунт владельца добавлен в Test users по его подтверждению. Полный вход не проверялся |
 | Доверенные адреса HTTPS | Получить адрес настоящего выпуска, настроить FRONTEND_URL/TRUSTED_ORIGINS и прокси | Production alias опубликован, API доступен по HTTPS; same-origin настройки заданы |
 | MFA всех администраторов | Создать администратора операторским bootstrap в рабочей БД, передать закрытое enrollment, подключить authenticator | Рабочий администратор с MFA credential создан; импорт authenticator и вход ожидают владельца |
 | Учебные данные отключены | Подключить отдельную чистую рабочую БД, не запускать seed, активировать DEMO_MODE=false | Новая PostgreSQL создана без учебного seed; рабочий конфиг `DEMO_MODE=false`; локальная демоверсия остаётся отдельной средой |
@@ -54,7 +62,7 @@ MFA readiness проверяет наличие активных credentials у 
 2. Заполнить закрытые подключения, используя существующие сгенерированные ключи. У API и worker одинаковые DB/auth/outbox/provider настройки.
 3. Чистая рабочая БД и миграции выполнены; учебная база не переносилась.
 4. Настроить email и владельца MFA. Импорт authenticator выполняет владелец; enrollment и коды не пересылаются в чат.
-5. Выпуск и расписание QStash подключены. Для Google OAuth нужны credentials владельца. Закрытая подготовка/явное включение расписания: [QSTASH_RUNBOOK.md](QSTASH_RUNBOOK.md).
+5. Выпуск и расписание QStash подключены. Google OAuth credentials получены и записаны в Production; доступ зависит от Google Audience/Branding и отдельного прохождения входа. Закрытая подготовка/явное включение расписания: [QSTASH_RUNBOOK.md](QSTASH_RUNBOOK.md).
 6. Пройти структурную проверку и согласованную проверку рабочих входов/доставки/доступа. Обновить сводку операций из реально запущенной рабочей среды.
 
 Текущие локальные приложения работают с прежними настройками. Переключение только AUTH_DEBUG_CODE без доставки почты блокирует новый вход; переключение DEMO_MODE не удаляет учебные записи. Поэтому подготовка и активация фиксируются отдельно.

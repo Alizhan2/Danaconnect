@@ -2,7 +2,7 @@
 
 **Обновлено: 2 октября 2026 года, приложения опубликованы в облаке.** Документ разделяет наличие кода, выполненные наблюдения и подключение внешних сервисов. Публикация не является актом приёмки всех задач исходного backlog.
 
-Платформа создана с нуля. Основные процессы реализованы; добавлены отдельная админ-панель и дополнительные модули. Сайт и админка опубликованы в Vercel на `danaconnect.vercel.app`; API сообщил DB ready. Создана новая Neon PostgreSQL, применены миграции до `0e82eab8e5ef` без учебного seed, создан настоящий администратор с зашифрованным MFA credential. Подключён private Blob, Gmail SMTP настроен, активировано расписание QStash каждые две минуты. Google credentials и импорт authenticator владельцем ещё не подтверждены; функциональная приёмка входа/доставки/файлов не выполнялась. Демонстрационные записи и черновики документов не являются реальными участниками, результатами пилота или юридическим утверждением.
+Платформа создана с нуля. Основные процессы реализованы; добавлены отдельная админ-панель и дополнительные модули. Сайт и админка опубликованы в Vercel на `danaconnect.vercel.app`; API сообщил DB ready. Создана новая Neon PostgreSQL, применены миграции до `0e82eab8e5ef` без учебного seed, создан настоящий администратор с зашифрованным MFA credential. Подключён private Blob, Gmail SMTP настроен, активировано расписание QStash каждые две минуты. Google credentials записаны в Production, Google Auth Platform пока Testing. Импорт authenticator владельцем ещё не подтверждён; функциональная приёмка входа/доставки/файлов не выполнялась. Демонстрационные записи и черновики документов не являются реальными участниками, результатами пилота или юридическим утверждением.
 
 ## Реализованный объём
 
@@ -11,7 +11,7 @@
 | Email-вход | OTP, ограничения попыток/повторных запросов, HttpOnly cookie, выход, проверка Origin | Production не возвращает debug-код; получение письма зависит от настроенного провайдера и worker |
 | Доставка | Адаптеры Resend/SMTP, зашифрованная transactional outbox, lease/retries, локальный режим разработки | Реальные отправки не подтверждены; постановка в очередь не означает доставку |
 | Администратор | Отдельное Next-приложение, email OTP + TOTP MFA, проверка роли/MFA на API, offline bootstrap и ротация с отзывом сессий | Production администратор без MFA не получает сеанс; настройка провайдеров не выполнялась |
-| Google sign-in | OAuth state/nonce/PKCE, проверка ID token и привязка внешней identity | Опционально; нужны credentials и HTTPS callback, live Google flow не проходился |
+| Google sign-in | OAuth state/nonce/PKCE, проверка ID token и привязка внешней identity | Credentials и HTTPS callback записаны в Production; Google Testing, live Google flow не проходился |
 | Анкеты | Менти/ментор, направления, дата рождения менти, опыт/подтверждения ментора, IANA timezone, сохранение и повторная модерация существенных изменений | Публичная регистрация не выдаёт роль администратора |
 | Документы | Применимость по роли/направлению/контексту, неизменяемые версии и хеши, переводы RU/KZ/EN, журнал актуальных согласий, блокировка новых действий до ознакомления | Текст должен быть утверждён владельцем; опубликованная версия не равна юридическому одобрению или электронной подписи |
 | Каталог | Публичные профили менторов, поиск/фильтры, отсутствие приватных контактов/даты рождения/проверочных ссылок в публичной выдаче | Видимость зависит от статуса и согласий; демонстрационный профиль не доказывает реальную квалификацию |
@@ -48,7 +48,7 @@
 
 ## Подготовка облака
 
-**Production deployment опубликован на Hobby.** `dpl_97q1BC7xQgFCX9BrLoyqFaefjosE` имеет READY и production alias `danaconnect.vercel.app`; API `/api/v1/ready` сообщил HTTP 200 и `ready`. Бесплатная Neon создана и подключена к Production; миграции и admin bootstrap завершены. Private Blob, Gmail SMTP и QStash подключены, расписание активно; в PostgreSQL наблюдён первый успешный цикл облачного worker. Google credentials пока отсутствуют. Точные факты и границы: [ACTIVATION_STATUS.md](ACTIVATION_STATUS.md).
+**Production deployment опубликован на Hobby.** `dpl_97q1BC7xQgFCX9BrLoyqFaefjosE` имеет READY и production alias `danaconnect.vercel.app`; API `/api/v1/ready` сообщил HTTP 200 и `ready`. Бесплатная Neon создана и подключена к Production; миграции и admin bootstrap завершены. Private Blob, Gmail SMTP и QStash подключены, расписание активно; в PostgreSQL наблюдён первый успешный цикл облачного worker. Google credentials записаны в Production; обновление `dpl_ECG8WSv6JG2q4uQwZw9DDS3eA7PB` с ними имеет READY и тот же production alias. Google Auth Platform External / Testing, полный вход не проходился. Точные факты и границы: [ACTIVATION_STATUS.md](ACTIVATION_STATUS.md).
 
 Реализованы три Dockerfile, production Compose, отдельный Compose для внешнего worker, постоянный PostgreSQL volume, Caddy/TLS routing, private S3 configuration, генератор закрытой конфигурации и scripts запуска/readiness/backup/restore. Restore создаёт новую отдельную БД и не перезаписывает работающую. Secrets и backup исключены из Git/build/upload контекстов.
 

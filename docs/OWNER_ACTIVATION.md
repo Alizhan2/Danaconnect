@@ -28,7 +28,9 @@ Resend требует настройки собственного отправи
 - В режиме Testing добавьте аккаунт владельца в test users. Такой режим не подтверждает доступ для всех участников; публикация и требования Google проверяются отдельно.
 - Заполните `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET` в закрытом `deploy/.env.owner-input.local`. URI будет выставлен в рабочей конфигурации одновременно с credentials.
 
-Сообщите «Google готов» после сохранения. Сайт уже опубликован, почта настроена; credentials Google всё ещё отсутствуют. Private Blob создан; файловые операции приложения ещё не подтверждены.
+2 октября 2026 года владелец создал OAuth client **DanaConnect Web** типа **Web application** и передал credentials. Они сохранены в закрытых owner-input/production файлах и трёх зашифрованных Production environment variables Vercel. Консоль Google подтверждает точный callback выше. Authorized JavaScript origins пусты; для используемого серверного OAuth redirect flow браузерный JS SDK не используется.
+
+Google Auth Platform пока **External / Testing**. С разрешения владельца его аккаунт добавлен в Test users; консоль подтвердила один тестовый аккаунт. Публичная доступность входа не подтверждена; публикация OAuth app для всех потребует завершить Branding и требования Google. Полный вход через Google не проверялся.
 
 ## Облачная очередь писем
 
