@@ -3,11 +3,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      run_api_tests:
-        description: Run the existing API tests explicitly
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
@@ -21,14 +16,7 @@ jobs:
       - run: python -m pip install -r apps/api/requirements.lock.txt
       - run: python -m compileall -q app migrations
         working-directory: apps/api
-      - run: python -m pytest -q
-        if: github.event_name == 'workflow_dispatch' && inputs.run_api_tests
-        working-directory: apps/api
-        env:
-          ENVIRONMENT: test
-          DATABASE_URL: sqlite:///./test-application.db
-          AUTH_DEBUG_CODE: 'true'
-          DEMO_MODE: 'false'
+      - run: python scripts/api-tests.py
   web:
     runs-on: ubuntu-latest
     steps:
@@ -42,6 +30,7 @@ jobs:
         working-directory: apps/web
       - run: npm run typecheck
         working-directory: apps/web
+      - run: node scripts/frontend-tests.mjs
       - run: npm run build
         working-directory: apps/web
   admin:

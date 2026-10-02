@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import SessionLocal, engine
+from app.schema_registry import Base
 from app.models import (
-    Application, AuditEvent, Base, Booking, Consent, Conversation,
+    Application, AuditEvent, Booking, Consent, Conversation,
     ConversationMember, Direction, Document, DocumentVersion, Feedback, Message,
     Notification, Participation, ParticipationEvent, Project, ProjectMember,
     RegistrationReview, Result, ShowcaseConsent, Slot, User,

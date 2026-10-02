@@ -1,11 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
-Push-Location (Join-Path $projectRoot 'apps\api')
-try {
-    & $projectPython -m pytest -q
-    if ($LASTEXITCODE -ne 0) { throw 'API checks failed.' }
-} finally { Pop-Location }
+& $projectPython (Join-Path $PSScriptRoot 'api-tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'API checks failed.' }
+node (Join-Path $PSScriptRoot 'frontend-tests.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Frontend checks failed.' }
 Push-Location (Join-Path $projectRoot 'apps\web')
 try {
     npm.cmd run typecheck

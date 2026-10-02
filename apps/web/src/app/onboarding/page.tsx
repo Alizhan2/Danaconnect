@@ -107,6 +107,7 @@ export default function OnboardingPage() {
         },
         "PUT",
       );
+      window.dispatchEvent(new Event("danaconnect:profile-updated"));
       await load.reload();
     }, tr("Профиль сохранён. Проверьте актуальные документы ниже."));
   }

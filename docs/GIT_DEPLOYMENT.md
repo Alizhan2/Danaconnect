@@ -21,7 +21,9 @@
 
 Создать новую ветку `codex/<описание>`, сохранить изменения коммитом и открыть pull request. После просмотра изменений объединить в production branch. Изменения конфигурации провайдеров и обновления БД фиксировать в инструкции к релизу.
 
-GitHub Actions при push и pull request компилирует API, проверяет TypeScript и собирает оба интерфейса. Существующие API-тесты запускаются только вручную через **Actions → Application checks → Run workflow → run_api_tests**. Автоматическая сборка не подтверждает пользовательские сценарии или доставку писем.
+GitHub Actions при push и pull request компилирует API, запускает весь набор API-тестов через `scripts/api-tests.py`, проверяет frontend helpers/компоненты, TypeScript и собирает оба интерфейса. Ручной повтор доступен через **Actions → Application checks → Run workflow**. API-тесты используют временную SQLite и очищенное окружение без рабочих ключей. Компонентные проверки с имитацией hooks/API и сборки не заменяют интерактивный браузерный прогон.
+
+Локально: `.\.venv\Scripts\python.exe scripts/api-tests.py` и `node --test scripts/frontend-tests.mjs`. Общая команда с обеими сборками: `scripts/check.ps1`.
 
 ## Что исключено из репозитория
 

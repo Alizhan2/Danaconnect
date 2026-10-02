@@ -43,15 +43,22 @@ export function AppShell({
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
     let live = true;
-    api<User>("/auth/me")
+    let version = 0;
+    const refreshUser = () => {
+      const current = ++version;
+      api<User>("/auth/me")
       .then((value) => {
-        if (live) setUser(value);
+        if (live && current === version) setUser(value);
       })
       .catch(() => {
-        if (live) setUser(null);
+        if (live && current === version) setUser(null);
       });
+    };
+    refreshUser();
+    window.addEventListener("danaconnect:profile-updated", refreshUser);
     return () => {
       live = false;
+      window.removeEventListener("danaconnect:profile-updated", refreshUser);
     };
   }, [pathname]);
   const nav = [
