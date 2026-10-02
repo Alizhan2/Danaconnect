@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "apps/web",
+      "framework": "nextjs",
+      "installCommand": "npm ci",
+      "buildCommand": "npm run build",
+      "bindings": [{"type": "service", "service": "api", "format": "url", "env": "API_SERVICE_URL"}]
+    },
+    "admin": {
+      "root": "apps/admin",
+      "framework": "nextjs",
+      "installCommand": "npm ci",
+      "buildCommand": "ADMIN_BASE_PATH=/admin npm run build",
+      "bindings": [{"type": "service", "service": "api", "format": "url", "env": "API_SERVICE_URL"}]
+    },
+    "api": {
+      "root": "apps/api",
+      "framework": "fastapi",
+      "entrypoint": "app.main:app",
+      "functions": {"app/main.py": {"includeFiles": "assets/fonts/**"}},
+      "installCommand": "pip install -r requirements.lock.txt"
+    }
+  },
+  "rewrites": [
+    {"source": "/api/(.*)", "destination": {"service": "api"}},
+    {"source": "/admin", "destination": {"service": "admin"}},
+    {"source": "/admin/(.*)", "destination": {"service": "admin"}},
+    {"source": "/(.*)", "destination": {"service": "web"}}
+  ]
+}

@@ -1,0 +1,47 @@
+# Local configuration and credentials
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+!.env.*.example
+
+# Python and local databases
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Web build and packages
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Temporary output and logs
+tmp/
+*.log
+artifacts/
+.DS_Store
+Thumbs.db
+
+# Browser testing
+test-results/
+playwright-report/
+
+# Cloud state, private uploads, operator enrollment and backups
+.vercel/
+deploy/.env.production
+deploy/.env.worker
+deploy/backups/
+private_uploads/
+*.enrollment.json
+
+# Local screenshots may contain account or participant information
+docs/evidence/

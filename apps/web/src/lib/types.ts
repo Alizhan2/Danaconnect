@@ -1,0 +1,142 @@
+export interface User {
+  preferred_locale?: "ru" | "kk" | "en";
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  account_status: string;
+  intake_open: boolean;
+  timezone: string;
+  city: string;
+  direction_ids: string[];
+  profile_completed: boolean;
+  bio?: string;
+  phone?: string;
+  birth_date?: string;
+  expertise?: string;
+  evidence_urls?: string[];
+  capacity?: number;
+}
+export interface Direction {
+  id: string;
+  slug: string;
+  name_ru: string;
+  name_kk: string;
+  name_en: string;
+  description_ru: string;
+  active: boolean;
+}
+export interface Mentor {
+  id: string;
+  full_name: string;
+  city: string;
+  bio: string;
+  expertise: string;
+  direction_ids: string[];
+  intake_open: boolean;
+  capacity: number;
+  timezone: string;
+}
+export interface DocumentVersion {
+  content_locale?: "ru" | "kk" | "en";
+  content_hash?: string;
+  content_kk?: string | null;
+  content_en?: string | null;
+  id: string;
+  document_id: string;
+  title: string;
+  slug: string;
+  version: string;
+  content: string;
+  scope: string;
+  required: boolean;
+  accepted: boolean;
+}
+export interface Project {
+  id: string;
+  owner_id: string;
+  mentor_id?: string | null;
+  direction_id: string;
+  title: string;
+  problem: string;
+  description: string;
+  private_details?: string;
+  stage: string;
+  required_skills: string[];
+  capacity: number;
+  visibility_status: string;
+  created_at: string;
+}
+export interface Application {
+  id: string;
+  project_id?: string | null;
+  mentee_id: string;
+  mentor_id: string;
+  motivation: string;
+  status: string;
+  created_at: string;
+  mentor_name?: string;
+  mentee_name?: string;
+  project_title?: string;
+  rejection_reason?: string;
+}
+export interface Participation {
+  id: string;
+  project_id?: string | null;
+  mentee_id: string;
+  mentor_id?: string | null;
+  status: string;
+  started_at: string;
+  project_title?: string;
+  mentee_name?: string;
+  mentor_name?: string;
+}
+export interface Slot {
+  id: string;
+  mentor_id: string;
+  mentor_name?: string;
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  status: string;
+}
+export interface Booking {
+  id: string;
+  slot_id: string;
+  mentee_id: string;
+  mentor_id: string;
+  participation_id?: string | null;
+  status: string;
+  starts_at: string;
+  ends_at: string;
+  mentor_name?: string;
+  mentee_name?: string;
+  meeting_url?: string | null;
+}
+export interface Conversation {
+  id: string;
+  application_id?: string | null;
+  participation_id?: string | null;
+  title?: string;
+  other_name?: string;
+  created_at: string;
+}
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name?: string;
+  body: string;
+  created_at: string;
+}
+export interface Result {
+  id: string;
+  participation_id: string;
+  status: string;
+  exit_reason: string;
+  summary: string;
+  artifact_url?: string | null;
+  meeting_count: number;
+  verification_status: string;
+  completed_at: string;
+}

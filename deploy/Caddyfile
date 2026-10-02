@@ -1,0 +1,26 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+  encode zstd gzip
+  request_body {
+    max_size 12MB
+  }
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    -Server
+  }
+  # Keep the prefix: both FastAPI and the admin build expect original paths.
+  handle /api/* {
+    reverse_proxy api:8000
+  }
+  @admin path /admin /admin/*
+  handle @admin {
+    reverse_proxy admin:3001
+  }
+  handle {
+    reverse_proxy web:3000
+  }
+}

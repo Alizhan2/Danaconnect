@@ -1,0 +1,136 @@
+name: danaconnect
+
+x-api: &api
+  image: danaconnect-api:${RELEASE_TAG:-local}
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  env_file:
+    - deploy/.env.production
+  environment:
+    ENVIRONMENT: production
+    DEMO_MODE: "false"
+    AUTH_DEBUG_CODE: "false"
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-danaconnect}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-danaconnect}
+    AUTH_SECRET: ${AUTH_SECRET:?Set fresh AUTH_SECRET}
+    OUTBOX_ENCRYPTION_KEY: ${OUTBOX_ENCRYPTION_KEY:?Set fresh Fernet key}
+    TRUSTED_ORIGINS: '["https://${APP_DOMAIN:?Set APP_DOMAIN}"]'
+    FRONTEND_URL: https://${APP_DOMAIN}
+    STORAGE_PROVIDER: s3
+    S3_BUCKET: ${S3_BUCKET:?Set private S3_BUCKET}
+    EMAIL_PROVIDER: ${EMAIL_PROVIDER:?Set smtp or resend}
+    EMAIL_FROM: ${EMAIL_FROM:?Set verified sender}
+  restart: unless-stopped
+  init: true
+  security_opt: ["no-new-privileges:true"]
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-danaconnect}
+      POSTGRES_DB: ${POSTGRES_DB:-danaconnect}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    networks: [private]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    <<: *api
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [private]
+
+  api:
+    <<: *api
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    networks:
+      private: {ipv4_address: 172.30.0.13}
+    expose: ["8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready',timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  worker:
+    <<: *api
+    command: ["python", "-m", "app.jobs_calendar", "--interval", "60"]
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [private]
+
+  web:
+    image: danaconnect-web:${RELEASE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_BASE_URL: http://api:8000
+        ADMIN_APP_URL: https://${APP_DOMAIN}/admin
+        NEXT_PUBLIC_WEB_URL: https://${APP_DOMAIN}
+    environment:
+      ADMIN_APP_URL: https://${APP_DOMAIN}/admin
+    depends_on:
+      api: {condition: service_healthy}
+    networks:
+      private: {ipv4_address: 172.30.0.11}
+    expose: ["3000"]
+    restart: unless-stopped
+    init: true
+    security_opt: ["no-new-privileges:true"]
+
+  admin:
+    image: danaconnect-admin:${RELEASE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        API_BASE_URL: http://api:8000
+        ADMIN_BASE_PATH: /admin
+        NEXT_PUBLIC_WEB_URL: https://${APP_DOMAIN}
+    depends_on:
+      api: {condition: service_healthy}
+    networks:
+      private: {ipv4_address: 172.30.0.12}
+    expose: ["3001"]
+    restart: unless-stopped
+    init: true
+    security_opt: ["no-new-privileges:true"]
+
+  proxy:
+    image: caddy:2
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set real domain}
+      ACME_EMAIL: ${ACME_EMAIL:?Set certificate contact email}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web, admin]
+    networks:
+      private: {ipv4_address: 172.30.0.10}
+    restart: unless-stopped
+
+networks:
+  private:
+    ipam:
+      config: [{subnet: 172.30.0.0/24}]
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
