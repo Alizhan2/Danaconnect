@@ -20,7 +20,8 @@ try {
         }
     }
     Write-Output "Backup created: $backupPath"
-    Write-Output 'Copy it to encrypted offsite storage. This archive does not contain S3 objects or application encryption keys.'
+    Write-Output 'Copy it to encrypted offsite storage. This is a database-only archive: local private files, S3 objects and Vercel Blob objects need a separate verified backup.'
+    Write-Output 'Keep AUTH_SECRET and OUTBOX_ENCRYPTION_KEY (including previous keys) in separate secure custody. Restored sessions, MFA credentials and encrypted mail cannot be recovered from the archive alone.'
 } finally {
     & docker @composeArguments exec -T postgres rm -f $containerPath
 }

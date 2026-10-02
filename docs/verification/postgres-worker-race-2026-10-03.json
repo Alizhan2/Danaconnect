@@ -1,0 +1,28 @@
+{
+  "scope": "Synthetic local PostgreSQL mentor FOR UPDATE interleaving; no production traffic",
+  "postgres_version": "18.6",
+  "before": {
+    "name": "worker rechecks rule active after acquiring mentor lock",
+    "passed": false,
+    "generation_calls_after_retirement": 1,
+    "worker": {
+      "processed": 1,
+      "created": 0,
+      "skipped": 0,
+      "errors": 0
+    }
+  },
+  "after": {
+    "name": "worker rechecks rule active after acquiring mentor lock",
+    "passed": true,
+    "generation_calls_after_retirement": 0,
+    "worker": {
+      "processed": 0,
+      "created": 0,
+      "skipped": 0,
+      "errors": 0
+    }
+  },
+  "effect": "Before fix: stale disabled-rule invocation and processed accounting. Inner generate_rule guard prevented slot creation. After fix: retired rule skipped before generation.",
+  "source_sha256": "8c0dd21fb52bdfe1137b64a912e3c3bd02c1b4bc229aa30456de43c876ab7042"
+}

@@ -1,0 +1,13 @@
+{
+  "scope": "Simulated source-unavailable local recovery; every source PG command blocked before execution",
+  "source_network_attempts": 0,
+  "target_pg_commands": 7,
+  "matched": true,
+  "table_count": 48,
+  "total_rows": 38,
+  "migration": "0e82eab8e5ef",
+  "provider_settings_matched": true,
+  "restore_seconds": 7.697,
+  "same_decrypted_archive_used": true,
+  "promotion_verified": false
+}

@@ -99,6 +99,11 @@ def regenerate_rules(session_factory=SessionLocal, *, limit=100):
                     db.rollback()
                     continue
                 rule = db.get(AvailabilityRule, identifier, populate_existing=True)
+                # A disable/removal can commit while this worker waits for the
+                # mentor lock. Eligibility must use the post-lock row state.
+                if not rule or not rule.active:
+                    db.rollback()
+                    continue
                 generated = generate_rule(db, rule)
                 db.commit()
                 stats["processed"] += 1

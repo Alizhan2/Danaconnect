@@ -14,4 +14,5 @@ trap cleanup EXIT
 "${compose[@]}" cp "postgres:$container_path" "$backup_directory/$backup_name"
 (cd -- "$backup_directory" && sha256sum "$backup_name" > "$backup_name.sha256")
 echo "Backup created: $backup_directory/$backup_name"
-echo 'Copy to encrypted offsite storage. S3 objects and encryption keys need separate backup.'
+echo 'Copy to encrypted offsite storage. This is a database-only archive: local private files, S3 objects and Vercel Blob objects need a separate verified backup.'
+echo 'Keep AUTH_SECRET and OUTBOX_ENCRYPTION_KEY (including previous keys) in separate secure custody. Restored sessions, MFA credentials and encrypted mail cannot be recovered from the archive alone.'

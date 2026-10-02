@@ -17,6 +17,47 @@ jobs:
       - run: python -m compileall -q app migrations
         working-directory: apps/api
       - run: python scripts/api-tests.py
+  postgres-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: dc_pilot_operator
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: dc_pilot_load_ci
+          POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U dc_pilot_operator -d dc_pilot_load_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r apps/api/requirements.lock.txt
+      - name: Prepare isolated synthetic database URL
+        run: |
+          mkdir -p artifacts/verification
+          printf '%s\n' 'postgresql+psycopg://dc_pilot_operator:synthetic-ci-only@127.0.0.1:55432/dc_pilot_load_ci?sslmode=disable' > artifacts/verification/ci-load-db.url
+          chmod 600 artifacts/verification/ci-load-db.url
+      - name: PostgreSQL concurrency pilot
+        run: >-
+          python scripts/verification/postgres_load.py
+          --database-url-file artifacts/verification/ci-load-db.url
+          --clients 20 --read-rounds 5
+          --report artifacts/verification/postgres-load-ci.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postgres-concurrency-report
+          path: artifacts/verification/postgres-load-ci.json
+          if-no-files-found: warn
   web:
     runs-on: ubuntu-latest
     steps:

@@ -2,11 +2,11 @@
 
 ## Статус
 
-Подготовлены конфигурации и команды запуска. Публичный адрес не создан. Аккаунт Vercel пока не авторизован; домен, сервер, почтовый отправитель и приватное хранилище не подключены. Контейнеры не запускались: Docker daemon в текущем окружении недоступен. Этот документ не является свидетельством работающего облачного развёртывания.
+**Обновлено 3 октября 2026.** Рабочая платформа опубликована: [сайт](https://danaconnect.vercel.app/), [отдельная админка](https://danaconnect.vercel.app/admin). Подключены Neon PostgreSQL, Gmail SMTP, private Vercel Blob и QStash. Подтверждения и границы проверки: [облачный выпуск](VERIFICATION_2026-10-02.md), [мобильная приёмка](VERIFICATION_2026-10-03.md), [восстановление и нагрузка](RECOVERY_AND_LOAD_2026-10-03.md). Это наблюдения на указанное время; наличие сервиса не подтверждает все пользовательские сценарии.
 
-Пользователь выбрал Vercel Services: приложения размещаются вместе с внешними PostgreSQL/S3 и отдельным механизмом минутного планирования. Подготовленные настройки, обновление внешней базы и архив исходников описаны в [подготовке выпуска](RELEASE_PREPARATION.md). Полный переносимый вариант на Linux с Docker Compose сохранён: сайт, отдельная админ-панель, FastAPI, постоянный worker, PostgreSQL и Caddy с TLS.
+Текущая схема — Vercel Services с внешними Neon и private Blob; QStash вызывает защищённый worker batch каждые две минуты. Дополнительно сохранён вариант Linux/Docker Compose: сайт, админка, FastAPI, постоянный worker, PostgreSQL и Caddy. Docker daemon в этой среде недоступен; Compose runtime не проверен. Его инструкции ниже относятся к отдельному варианту размещения.
 
-## Что должен подключить владелец
+## Для альтернативного Compose и эксплуатации
 
 | Ресурс | Что требуется |
 |---|---|
@@ -42,7 +42,7 @@
 
 Для preview готовой standalone-сборки вызвать `npm run start` в каждом frontend приложении. `scripts/serve-next.mjs` копирует `.next/static` и существующий `public` в runtime и запускает `node .next/standalone/server.js` с loopback `127.0.0.1` и портом 3000/3001; build/install не выполняются. Dockerfiles самостоятельно упаковывают те же ресурсы и используют контейнерную сеть.
 
-Итог локального объединения 1–2 октября: оба frontend build прошли компиляцию/TypeScript/генерацию страниц; API и worker стартовали, mail provider не настроен и писем обработано 0. Ограниченный preview админ-входа выполнен без отправки формы. Это не hosted deployment или функциональная проверка сценариев; текущая evidence подробно отражена в [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+Результаты локальных и облачных проверок хранятся в отчётах выше. Тестовые среды отключают реальную почту, OAuth и AI; это не признак отключённого провайдера в Production. Текущий список оставшихся действий: [LAUNCH_REMAINING.md](LAUNCH_REMAINING.md).
 
 ## 2. Создать приватную конфигурацию
 
@@ -134,6 +134,30 @@ docker compose --env-file deploy/.env.production -f compose.prod.yml cp api:/tmp
 
 ## 5. Backup и восстановление
 
+### Внешний Neon: текущая облачная схема
+
+Для backup использовать защищённый файл с **прямым** подключением Neon. Pooled endpoint приложения не заменяет direct connection для `pg_dump`/`pg_restore`: [документация Neon](https://neon.com/docs/connect/connection-pooling). Установить PostgreSQL client tools совместимой версии; `--pg-bin-directory` позволяет указать каталог portable binaries без изменения PATH. В этом этапе source и client — PostgreSQL 18.6.
+
+```powershell
+.venv/Scripts/python.exe deploy/postgres_backup.py backup --source-env-file deploy/.env.backup.local --output-directory deploy/backups --apply
+.venv/Scripts/python.exe deploy/postgres_backup.py verify --backup-file 'C:\защищённый\database.dump'
+.venv/Scripts/python.exe deploy/postgres_backup.py restore --source-env-file deploy/.env.backup.local --target-env-file deploy/.env.restore.local --target-database dc_restore_20261003 --backup-file 'C:\защищённый\database.dump'
+# После проверки отдельного target и архива:
+.venv/Scripts/python.exe deploy/postgres_backup.py restore --source-env-file deploy/.env.backup.local --target-env-file deploy/.env.restore.local --target-database dc_restore_20261003 --backup-file 'C:\защищённый\database.dump' --apply
+```
+
+Оба env-файла содержат `DATABASE_URL` и остаются закрытыми. Target env указывает на maintenance DB отдельного сервера. Пароли не передаются аргументами и не печатаются; временный passfile имеет ограниченный доступ. Без `--apply` выполняется только offline-проверка конфигурации. `verify` подтверждает SHA256/manifest, но не является восстановлением. Backup создаёт новый private child directory с custom archive, checksum и manifest; исходные данные читаются без записи. Для сравнения точного снимка поддержан `--snapshot`, пока экспортирующая READ ONLY транзакция открыта.
+
+Restore создаёт **новую** БД через `template0`, отказывает для существующих/live/default имён и проверяет фактический endpoint/identity. `pg_restore` выполняется одной транзакцией с `--no-owner --no-acl --no-tablespaces`; application роли, права, provider settings и ключи готовятся отдельно. Автоматического переключения Production или удаления базы нет. [pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html), [pg_restore](https://www.postgresql.org/docs/current/app-pgrestore.html).
+
+Manifest v2 записывает locale metadata. Текущий CLI восстанавливает UTF8/builtin `C`, `C.UTF-8` или `PG_UNICODE_FAST` при одинаковом PostgreSQL major и проверенной collation version; другие provider/locale требуют отдельной процедуры. По умолчанию LC_COLLATE/LC_CTYPE тоже должны совпасть. Для **изолированного loopback** упражнения Windows с source builtin C.UTF-8 допустим явный `--allow-os-locale-difference`: изменяться могут только OS LC-поля, provider/datlocale/encoding/обе version проверяются строго. Версия collation не форсируется. Это исключение использовано в отчёте; remote target и другие provider/locale им не разрешаются. Promotion этим не подтверждается. [CREATE DATABASE](https://www.postgresql.org/docs/18/sql-createdatabase.html), [locale providers](https://www.postgresql.org/docs/18/locale.html).
+
+Если исходная БД недоступна, `restore --source-unavailable` позволяет проверить восстановление на отдельном loopback target без source connections/passfile. Имя БД в source env обязано совпасть с v2 manifest; SHA256, новая пустая БД, target identity, major и locale guards сохраняются. Live source identity в этом режиме не проверена; нужно доверенное происхождение архива. Это проверенный локальный outage путь; remote failover требует отдельной процедуры.
+
+Custom archive содержит персональные данные и **не зашифрован этим CLI**. Для offsite его нужно зашифровать и хранить ключ отдельно, затем проверить расшифровку/checksum перед восстановлением. В локальном упражнении выполнен encryption → decryption → restore; обе private копии остаются на этом компьютере. Offsite, автоматический backup и provider PITR не настроены этим этапом. Нельзя считать локальное измерение согласованными RPO/RTO.
+
+### Полный Docker Compose: отдельный вариант
+
 PostgreSQL хранится в `postgres_data`, TLS state — в `caddy_data`/`caddy_config`. Пересоздание контейнеров сохраняет volumes. Не выполнять `docker compose down -v` на работающем проекте.
 
 Создать PostgreSQL custom archive + SHA256:
@@ -154,7 +178,7 @@ bash scripts/cloud/backup.sh
 15 2 * * * /bin/bash /opt/danaconnect/scripts/cloud/backup.sh /защищённая/backup-папка >> /защищённая/backup-папка/job.log 2>&1
 ```
 
-Это пример, расписание не устанавливалось. Offsite перенос и шифрование выбираются у оператора/провайдера; автоматически никуда данные не отправляются. S3 bucket должен иметь отдельный versioning/backup; PostgreSQL dump не содержит файлов. Отдельно защищённо сохраняются `AUTH_SECRET`, текущий и предыдущие ключи outbox/MFA, конфигурация провайдера и данные восстановления KMS. Потеря ключей делает часть зашифрованных данных нечитаемой. Удаление пользовательских данных должно учитывать backup и S3 версии; админ-форма не выполняет полный purge.
+Это пример, расписание не устанавливалось. Offsite перенос и шифрование выбираются у оператора/провайдера; автоматически никуда данные не отправляются. PostgreSQL dump не содержит объектов private Blob/S3 или local storage: нужна отдельная копия объектов и согласованный порядок версий/удаления. Отдельно защищённо сохраняются `AUTH_SECRET`, текущий и предыдущие ключи outbox/MFA, конфигурация провайдера и данные восстановления KMS. Потеря ключей делает часть зашифрованных данных нечитаемой. Удаление пользовательских данных должно учитывать backup и версии объектов; админ-форма не выполняет полный purge.
 
 Восстановление по умолчанию проверяет checksum. Изменение БД требует явного флага и **нового** имени; существующая/live база не перезаписывается:
 
@@ -170,6 +194,10 @@ bash scripts/cloud/restore.sh /защищённый/danaconnect-....dump recover
 
 `createdb` отказывает для уже существующего имени, `pg_restore --exit-on-error` останавливается при ошибке. Ошибка может оставить частично заполненную отдельную базу; скрипт не удаляет её автоматически. Перед переключением оператор сверяет миграцию, данные, приватные файлы, ключи и доступы. Promotion отдельной восстановленной базы — отдельное управляемое действие при остановке записей; скрипты не подменяют live DB.
 
+### Перед переключением восстановленной копии
+
+Сверить PostgreSQL major, encoding/provider/locale/collation version, миграцию, строки/ограничения/индексы, storage и keyring. До переключения не запускать приложение, mail worker или scheduler на копии реальных аккаунтов. Отзыв сессий, OTP/MFA challenges и проверка `last_used_step` должны быть отдельным контролируемым действием: откат БД может вернуть ранее использованное состояние. Очередь и leases требуют сверки с фактической доставкой; at-least-once доставка допускает повторы. Локальные тесты отказов и восстановления ключей не заменяют этот порядок для Production.
+
 ## 6. Новый выпуск и откат
 
 1. Создать backup до изменения конфигурации/БД. Сохранить release commit, старые images и версию схемы.
@@ -184,11 +212,11 @@ bash scripts/cloud/restore.sh /защищённый/danaconnect-....dump recover
 
 Корневой `vercel.json` использует актуальный `services` с `root`, `framework`, bindings и top-level rewrites. Service bindings доступны **только во время выполнения**, поэтому созданный `API_SERVICE_URL` не используется как build-time rewrite target. Сейчас браузер вызывает тот же домен `/api/v1`; top-level router направляет запрос напрямую к API. Сервисы получают исходные пути, `/admin` не срезается. Источники: [Services configuration](https://vercel.com/docs/services/config-reference), [bindings](https://vercel.com/docs/services/bindings), [routing](https://vercel.com/docs/services/routing).
 
-После подключения владельцем аккаунта/проекта в Vercel:
+Проект уже подключён. Порядок ниже используется для отдельного повторного размещения:
 
 1. Связать репозиторий как один проект с корнем репозитория; не указывать apps/web как root всего проекта. Проверить доступность текущей Services beta для аккаунта.
 2. Внести production env только в защищённые настройки окружения: `ENVIRONMENT=production`, external `DATABASE_URL=postgresql+psycopg://…` (TLS/pooler провайдера), `AUTH_SECRET`, `OUTBOX_ENCRYPTION_KEY`, `TRUSTED_ORIGINS=["https://<домен>"]`, `FRONTEND_URL=https://<домен>`, mail/S3 настройки. Frontend: `ADMIN_APP_URL=https://<домен>/admin`, `NEXT_PUBLIC_WEB_URL=https://<домен>`. Admin build command уже задаёт `/admin`.
-3. Использовать внешнюю постоянную PostgreSQL, приватный S3; локальные SQLite и файлы serverless-диска запрещены. Выполнить миграции отдельно из защищённого операторского окружения с теми же production settings. Не запускать миграции в каждом request.
+3. Использовать внешнюю постоянную PostgreSQL, private Blob (`STORAGE_PROVIDER=blob`) либо приватный S3. Локальные SQLite и файлы serverless-диска запрещены. Выполнить миграции отдельно из защищённого операторского окружения с теми же production settings. Не запускать миграции в каждом request.
 4. Сделать preview с отдельными preview DB/bucket, origin и секретами; не направлять preview к production данным. Настройки приложения требуют HTTPS, demo/debug отключены. Провайдеры и MFA нужны и для этого окружения.
 5. Перед publication выбрать worker-вариант ниже. Пока нет реального планировщика, OTP в outbox и напоминания не работают своевременно.
 6. Внести `UPLOAD_MAX_BYTES=3145728` для Vercel: функция имеет предел 4.5 MB на запрос **и ответ**; текущие приватные скачивания проходят через API, поэтому большие файлы нельзя обещать. Полные 10 MiB доступны в контейнерном варианте. [Ограничения Vercel Functions](https://vercel.com/docs/functions/limitations).
@@ -198,6 +226,7 @@ bash scripts/cloud/restore.sh /защищённый/danaconnect-....dump recover
 
 **Worker-варианты:**
 
+- Текущий Production — QStash каждые две минуты с проверкой подписи/защищённым batch. Второй параллельный scheduler не включать. Настройка и наблюдения приведены в [диагностике](MONITORING_RUNBOOK.md).
 - Основной переносимый вариант — постоянно работающий контейнер worker на сервере с той же внешней PostgreSQL и env, без второй параллельной копии scheduler. Команда `python -m app.jobs_calendar --interval 60`.
 - Opt-in Vercel minute cron — только тариф с поддержкой минуты и согласованный бюджет. В Hobby минимум один запуск в день и нет подходящей точности для почты/напоминаний; такой запуск не заменяет worker. [Cron usage and pricing](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
@@ -220,8 +249,8 @@ docker compose --env-file deploy/.env.worker -f deploy/compose.worker.yml up -d 
 
 Постоянный daemon внутри serverless function не запускать. Один batch ограничен временем функции; после реального развёртывания оператор наблюдает длительность/heartbeat/очередь и, если функция не успевает, использует контейнерный worker. Внешний cron должен также передавать Bearer secret, не query-string. Secrets не писать в команды/историю shell или публичные URL.
 
-Vercel config подготовлен по текущей документации; загрузка в аккаунт и acceptance самой платформой не выполнены из-за отсутствия авторизации. Владелец подключает аккаунт и подтверждает реальные ресурсы/тариф до публикации.
+Vercel Services опубликованы и доступны по HTTPS. Версии, результаты сборок и наблюдения worker записываются в отчётах выпуска; изменение тарифа, домена, scheduler или provider — отдельное действие.
 
 ## Граница готовности
 
-Реализовано: container build recipes, порядок миграций, routing/TLS, private storage settings, worker, scripts для закрытых secrets/config, backup/restore и альтернативный Services config. Статически проверены JSON/Python/PowerShell; приложения собираются отдельно. Не подтверждено в текущем окружении: Docker build/runtime, PostgreSQL server, S3 IAM, DNS/TLS, production email, облачная MFA и реальное восстановление. Эти пункты являются условиями фактического запуска; публичной deployment ссылки пока нет.
+Подтверждения текущего Vercel/Neon/Blob/SMTP/QStash и отдельного восстановления представлены в отчётах в начале документа. Не подтверждены альтернативный Compose runtime/S3 IAM, полный пользовательский сценарий каждого администратора, все типы реальных писем, offsite/PITR и Production failover. Документы, реальные условия обработки данных и эксплуатационные цели остаются в [списке запуска](LAUNCH_REMAINING.md).
