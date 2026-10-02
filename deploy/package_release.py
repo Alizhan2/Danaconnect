@@ -46,7 +46,7 @@ def collect_sources() -> dict[str, bytes]:
     paths.update(path for path in (ROOT / "apps/api/assets/fonts").glob("*") if path.suffix.lower() in {".ttf", ".txt", ".md"})
     paths.update(path for path in (ROOT / "scripts").rglob("*") if path.suffix in {".py", ".ps1", ".sh", ".mjs"})
     paths.update(ROOT / "deploy" / name for name in ["generate_config.py", "readiness.py", "package_release.py", "vercel_config.py", "migrate_external.py", "configure_qstash.py", "compose.worker.yml", "Caddyfile", "s3-policy.example.json", "vercel.cron.example.json", ".env.production.example", ".env.worker.example", ".env.vercel.example"])
-    paths.update(ROOT / "docs" / name for name in ["CLOUD_RUNBOOK.md", "RELEASE_PREPARATION.md", "IMPLEMENTATION_STATUS.md", "PILOT_RELEASE_PLAN.md", "MONITORING_RUNBOOK.md", "BLOB_STORAGE.md", "ACTIVATION_STATUS.md", "OWNER_ACTIVATION.md", "QSTASH_RUNBOOK.md"])
+    paths.update(ROOT / "docs" / name for name in ["CLOUD_RUNBOOK.md", "RELEASE_PREPARATION.md", "IMPLEMENTATION_STATUS.md", "PILOT_RELEASE_PLAN.md", "MONITORING_RUNBOOK.md", "BLOB_STORAGE.md", "ACTIVATION_STATUS.md", "OWNER_ACTIVATION.md", "QSTASH_RUNBOOK.md", "GIT_DEPLOYMENT.md"])
     contents = {}
     for path in sorted(paths):
         if not safe_file(path):

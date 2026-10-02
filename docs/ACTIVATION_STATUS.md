@@ -22,6 +22,14 @@
 - Исправлен Windows offline bootstrap: ACL enrollment привязывается к SID текущего процесса и не зависит от отсутствующих USERNAME/USER в изолированном окружении. Повторный bootstrap успешно создал администратора; MFA не ротировался.
 - Docker CLI установлен, но Linux engine сейчас недоступен. Локальная PostgreSQL этой попыткой не создана.
 
+## GitHub и автоматическая публикация
+
+2 октября 2026 года исходники отправлены в предоставленный владельцем публичный репозиторий [Alizhan2/Danaconnect](https://github.com/Alizhan2/Danaconnect), первоначальная и основная ветка `codex/initial-platform`, коммит `404721b`. В первоначальный коммит включены 245 файлов. Закрытые конфигурации, локальные базы, enrollment MFA и локальные снимки экранов исключены; проверка содержимого staged files не обнаружила значения действующих секретов.
+
+[GitHub Actions первого коммита](https://github.com/Alizhan2/Danaconnect/actions/runs/37002419498) завершился `success`: компиляция API, TypeScript и сборки web/admin. API-тесты не запускались; в workflow они оставлены только для явно выбранного ручного запуска.
+
+Команда `vercel git connect` для существующего проекта `danaconnect` получила HTTP 400: **You need to add a Login Connection to your GitHub account first**. Поэтому автоматическая публикация из GitHub пока не подключена. Владельцу требуется подключить GitHub `Alizhan2` в Authentication своего рабочего аккаунта Vercel; затем повторить привязку репозитория и подтвердить production branch. Новый проект/провайдеры не создавались, прежний production deployment сохраняется. [Правила публикации](GIT_DEPLOYMENT.md).
+
 ## Что требуется для каждого показателя
 
 | Показатель | Реальное действие | Текущее состояние |
