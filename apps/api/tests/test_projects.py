@@ -133,6 +133,72 @@ def test_acceptance_is_atomic_and_messages_are_members_only(project_api):
     assert apply(client, ids, "mentee2").status_code == 409
 
 
+@pytest.mark.parametrize("project_chat", [False, True])
+@pytest.mark.parametrize("accepted", [False, True])
+def test_conversation_titles_identify_only_the_partner(project_api, project_chat, accepted):
+    client, factory, ids = project_api
+    application = apply(client, ids, project_id=ids["project"] if project_chat else None)
+    assert application.status_code == 201
+    application_id = application.json()["id"]
+    if accepted:
+        decision = decide(client, application_id)
+        assert decision.status_code == 200
+        conversation_id = decision.json()["conversation_id"]
+    else:
+        # Existing seeded/pre-participation conversations also need a useful title.
+        with factory() as db:
+            conversation = Conversation(application_id=application_id)
+            db.add(conversation)
+            db.flush()
+            conversation_id = conversation.id
+            db.add_all([ConversationMember(conversation_id=conversation_id, user_id=ids[who]) for who in ("mentor", "mentee")])
+            db.commit()
+
+    for who, partner in (("mentor", "mentee"), ("mentee", "mentor")):
+        response = call(client, "GET", "/conversations", who)
+        assert response.status_code == 200
+        item = next(row for row in response.json() if row["id"] == conversation_id)
+        assert item["other_name"] == partner
+        expected_title = f"Sample project · {partner}" if project_chat else partner
+        assert item["title"] == expected_title
+        assert "@example.test" not in response.text
+        assert "SECRET" not in response.text
+        assert "private_details" not in response.text
+    assert call(client, "GET", "/conversations", "stranger").json() == []
+    assert call(client, "GET", "/conversations", "admin").json() == []
+    assert call(client, "GET", f"/conversations/{conversation_id}/messages", "stranger").status_code == 404
+
+
+@pytest.mark.parametrize("project_chat", [False, True])
+def test_multiple_conversations_have_distinct_titles(project_api, project_chat):
+    client, factory, ids = project_api
+    with factory() as db:
+        db.get(User, ids["mentor"]).capacity = 3
+        db.commit()
+    for who in ("mentee", "mentee2"):
+        application = apply(client, ids, who, project_id=ids["project"] if project_chat else None)
+        assert application.status_code == 201
+        assert decide(client, application.json()["id"]).status_code == 200
+    items = call(client, "GET", "/conversations", "mentor").json()
+    expected_titles = {f"Sample project · {who}" if project_chat else who for who in ("mentee", "mentee2")}
+    assert {item["title"] for item in items} == expected_titles
+    assert {item["other_name"] for item in items} == {"mentee", "mentee2"}
+
+
+def test_unnamed_conversation_partner_does_not_expose_email(project_api):
+    client, factory, ids = project_api
+    application = apply(client, ids, project_id=None)
+    assert decide(client, application.json()["id"]).status_code == 200
+    with factory() as db:
+        db.get(User, ids["mentee"]).full_name = "  "
+        db.commit()
+    response = call(client, "GET", "/conversations", "mentor")
+    assert response.status_code == 200
+    assert response.json()[0]["title"] == "Менторство"
+    assert response.json()[0]["other_name"] == ""
+    assert "mentee@example.test" not in response.text
+
+
 def test_concurrent_acceptance_never_exceeds_mentor_capacity(project_api):
     client, factory, ids = project_api
     first = apply(client, ids).json()["id"]

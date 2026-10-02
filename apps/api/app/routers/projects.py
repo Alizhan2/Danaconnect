@@ -430,10 +430,18 @@ def conversations(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, g
     rows = db.scalars(select(Conversation).join(ConversationMember, ConversationMember.conversation_id == Conversation.id).where(ConversationMember.user_id == user.id).order_by(Conversation.created_at.desc(), Conversation.id).limit(limit).offset(offset)).all()
     output = []
     for conversation in rows:
-        members = db.scalars(select(User).join(ConversationMember, ConversationMember.user_id == User.id).where(ConversationMember.conversation_id == conversation.id, User.id != user.id)).all()
+        members = db.scalars(select(User).join(ConversationMember, ConversationMember.user_id == User.id).where(ConversationMember.conversation_id == conversation.id, User.id != user.id).order_by(User.full_name, User.id)).all()
+        other_name = ", ".join(member.full_name.strip() for member in members if member.full_name.strip())
         participation = db.get(Participation, conversation.participation_id) if conversation.participation_id else None
-        project = db.get(Project, participation.project_id) if participation and participation.project_id else None
-        output.append({"id": conversation.id, "application_id": conversation.application_id, "participation_id": conversation.participation_id, "title": project.title if project else "Менторство", "other_name": ", ".join(member.full_name for member in members), "created_at": conversation.created_at})
+        application = db.get(Application, conversation.application_id) if not participation and conversation.application_id else None
+        project_id = participation.project_id if participation else (application.project_id if application else None)
+        project = db.get(Project, project_id) if project_id else None
+        # Names come only from this member's conversation, never from an email or
+        # another project's participants. Include the partner for project chats too.
+        title = other_name or "Менторство"
+        if project:
+            title = f"{project.title} · {other_name}" if other_name else project.title
+        output.append({"id": conversation.id, "application_id": conversation.application_id, "participation_id": conversation.participation_id, "title": title, "other_name": other_name, "created_at": conversation.created_at})
     return output
 
 
