@@ -62,6 +62,19 @@ function sourceFunction(app,file,name) {
   return vm.runInNewContext(`${js};${name}`,{URL,process:{env:{NEXT_PUBLIC_ADMIN_BASE_PATH:'/admin'}}});
 }
 
+test('calendar keeps recurring forms mounted during refresh after initial loading',()=>{
+  for(const [data,expectedLoading] of [[undefined,true],[{user:{role:'mentor',timezone:'Asia/Oral'},slots:[],bookings:[],participations:[],mentors:[]},false]]){
+    const rt=runtime('web',{modules:{
+      '@/components/workflows/common':{LoadState:'load-state',useAction:()=>({busy:false}),useLoad:()=>({data,loading:true,error:undefined,reload:()=>{}})},
+      '@/components/calendar-rules':{RecurringAvailability:'recurring',MeetingControls:'meeting'},
+      '@/components/calendar-export':{CalendarExport:'export'},
+    }});
+    const tree=nodes(rt.load('app/calendar/page.tsx').default());
+    assert.equal(tree.find(node=>node?.type==='load-state').props.loading,expectedLoading);
+    if(data)assert.ok(tree.some(node=>node?.type==='recurring'));
+  }
+});
+
 test('mentor evidence requires valid HTTP(S) links and at most ten',()=>{
   const validate=sourceFunction('web','app/onboarding/page.tsx','evidenceProblem');
   for(const values of [[],['  '],['аавва'],['javascript:alert(1)'],['https://x.test/'+ 'a'.repeat(2083)],Array(11).fill('https://example.test')])assert.ok(validate(values));

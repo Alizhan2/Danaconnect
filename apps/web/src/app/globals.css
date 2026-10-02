@@ -6,3 +6,11 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 .filters .search-box input{padding-left:43px}
+
+/* Account navigation stays usable on compact screens. */
+@media(max-width:760px){
+  .mobile-nav{max-height:60vh;max-height:60dvh;overflow-y:auto;gap:0;overscroll-behavior:contain}
+  .mobile-nav a{display:flex;align-items:center;min-height:44px;padding:10px 0}
+  .mobile-nav a[aria-current="page"]{font-weight:700;color:var(--blue)}
+  .mobile-menu-button{min-width:44px;min-height:44px}
+}

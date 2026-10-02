@@ -113,7 +113,7 @@ export default function CalendarPage() {
       )}
       dashboard
     >
-      <LoadState {...load} retry={load.reload}>
+      <LoadState {...load} loading={load.loading && !load.data} retry={load.reload}>
         <ActionNotice action={action} />
         {user && (
           <div className="stack">

@@ -5,6 +5,10 @@ $projectPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
 if ($LASTEXITCODE -ne 0) { throw 'API checks failed.' }
 node (Join-Path $PSScriptRoot 'frontend-tests.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'Frontend checks failed.' }
+foreach ($suite in @('date-format-tests.mjs', 'download-tests.mjs', 'mobile-navigation-tests.mjs')) {
+    node (Join-Path $PSScriptRoot $suite)
+    if ($LASTEXITCODE -ne 0) { throw "$suite failed." }
+}
 Push-Location (Join-Path $projectRoot 'apps\web')
 try {
     npm.cmd run typecheck

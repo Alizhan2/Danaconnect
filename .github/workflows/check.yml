@@ -31,6 +31,9 @@ jobs:
       - run: npm run typecheck
         working-directory: apps/web
       - run: node scripts/frontend-tests.mjs
+      - run: node scripts/date-format-tests.mjs
+      - run: node scripts/download-tests.mjs
+      - run: node scripts/mobile-navigation-tests.mjs
       - run: npm run build
         working-directory: apps/web
   admin:

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Bell,
@@ -25,6 +25,7 @@ import { Button } from "./ui";
 import { usePlatformStatus } from "./platform-status";
 import { statusText } from "./workflows/common";
 import { NotificationBell } from "./notification-center";
+import { mobileNavigation } from "@/lib/navigation";
 export function AppShell({
   children,
   title,
@@ -40,7 +41,19 @@ export function AppShell({
   const { health } = usePlatformStatus();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButton.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
   useEffect(() => {
     let live = true;
     let version = 0;
@@ -148,9 +161,11 @@ export function AppShell({
               <ArrowUpRight size={16} />
             </Button>
             <button
+              ref={menuButton}
               className="icon-button mobile-menu-button"
               aria-label={open ? tr("Закрыть меню") : tr("Открыть меню")}
               aria-expanded={open}
+              aria-controls="mobile-navigation"
               onClick={() => setOpen(!open)}
             >
               {open ? <X /> : <Menu />}
@@ -158,23 +173,13 @@ export function AppShell({
           </div>
         </div>
         {open && (
-          <nav className="mobile-nav">
-            {[
-              ...nav,
-              { href: "/dashboard", label: t.dashboard },
-              ...(user
-                ? [{ href: "/notifications", label: tr("Уведомления") }]
-                : []),
-              ...(user ? [{ href: "/support", label: tr("Поддержка") }] : []),
-              ...(user
-                ? [{ href: "/recommendations", label: tr("Подбор ментора") }]
-                : []),
-              { href: "/login", label: t.login },
-            ].map((item) => (
+          <nav id="mobile-navigation" className="mobile-nav" aria-label={tr("Основная навигация")}>
+            {mobileNavigation(nav, side, !!user, { href: "/login", label: t.login }).map((item) => (
               <Link
                 onClick={() => setOpen(false)}
                 key={item.href}
                 href={item.href}
+                aria-current={pathname.startsWith(item.href) ? "page" : undefined}
               >
                 {item.label}
               </Link>

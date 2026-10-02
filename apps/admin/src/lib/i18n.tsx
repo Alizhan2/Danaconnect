@@ -1,5 +1,6 @@
 'use client';
 import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
+import {formatDateTime} from './date-format';
 export type Locale='ru'|'kk'|'en';
 const phrases={
   mfaTimeLeft:['Время для подтверждения','Растауға қалған уақыт','Time to confirm'],
@@ -19,5 +20,5 @@ const index={ru:0,kk:1,en:2} as const;
 const Context=createContext<{locale:Locale;setLocale:(value:Locale)=>void;t:(key:Label)=>string;label:(value:string)=>string}>({locale:'ru',setLocale:()=>{},t:key=>phrases[key][0],label:value=>value});
 export function LocaleProvider({children}:{children:ReactNode}){const [locale,setLocale]=useState<Locale>('ru');useEffect(()=>{try{const saved=localStorage.getItem('danaconnect.admin.locale');if(saved==='ru'||saved==='kk'||saved==='en')setLocale(saved);}catch{}},[]);useEffect(()=>{document.documentElement.lang=locale;try{localStorage.setItem('danaconnect.admin.locale',locale);}catch{}},[locale]);const t=(key:Label)=>phrases[key][index[locale]];const label=(value:string)=>value in phrases?t(value as Label):value;return <Context.Provider value={{locale,setLocale,t,label}}>{children}</Context.Provider>;}
 export const useLocale=()=>useContext(Context);
-export function dateTime(value:string,locale:Locale,timezone='Asia/Oral'){try{return new Intl.DateTimeFormat(locale==='kk'?'kk-KZ':locale==='ru'?'ru-RU':'en-GB',{timeZone:timezone,dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch{return value;}}
+export function dateTime(value:string,locale:Locale,timezone='Asia/Oral'){return formatDateTime(value,timezone,locale);}
 

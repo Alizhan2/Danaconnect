@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiError, errorMessage } from "@/lib/api";
 import { useLocale, translatePhrase as tr, type Locale } from "@/lib/i18n";
+import { formatDateTime } from "@/lib/date-format";
 import { Button } from "@/components/ui";
 
 export function useLoad<T>(loader: () => Promise<T>, deps: unknown[] = []) {
@@ -201,14 +202,7 @@ export function dateTime(
   timezone = "Asia/Oral",
   locale: Locale = "ru",
 ) {
-  try {
-    return new Intl.DateTimeFormat(
-      locale === "kk" ? "kk-KZ" : locale === "en" ? "en-GB" : "ru-RU",
-      { timeZone: timezone, dateStyle: "medium", timeStyle: "short" },
-    ).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatDateTime(value, timezone, locale);
 }
 export function safeUrl(value?: string | null) {
   if (!value) return undefined;

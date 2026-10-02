@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useGrowthLocale } from "./locale";
+import { formatDateTime } from "@/lib/date-format";
 export { useLoad, DataState as LoadState } from "@/components/common";
 export { mutate } from "@/lib/api";
 export function dateTime(
@@ -8,14 +9,7 @@ export function dateTime(
   timezone = "Asia/Oral",
   locale: "ru" | "kk" | "en" = "ru",
 ) {
-  try {
-    return new Intl.DateTimeFormat(
-      locale === "kk" ? "kk-KZ" : locale === "en" ? "en-GB" : "ru-RU",
-      { timeZone: timezone, dateStyle: "medium", timeStyle: "short" },
-    ).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatDateTime(value, timezone, locale);
 }
 export function useAction() {
   const [busy, setBusy] = useState(false);

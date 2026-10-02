@@ -22,6 +22,7 @@ deploy/backups
 tmp
 artifacts
 docs/legal-drafts
+docs/evidence
 test-results
 playwright-report
 **/*.log
