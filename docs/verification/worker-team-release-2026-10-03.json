@@ -1,0 +1,12 @@
+{
+  "read_only": true,
+  "observed_at_utc": "2026-10-02T20:42:19.745409+00:00",
+  "status": "success",
+  "finished_at_utc": "2026-10-02T20:42:05.766717+00:00",
+  "age_seconds": 13.978692,
+  "invitation_maintenance_observed": true,
+  "migration_revision": "52d790adb0ae",
+  "deployment_id": "dpl_5G28Rg4Nmawh3Pzmq7T6GEM5g5xi",
+  "release_confirmed_at_utc": "2026-10-02T20:40:20.228277+00:00",
+  "finished_after_release": true
+}

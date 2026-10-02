@@ -30,4 +30,11 @@
 
 ## Выпуск
 
-Результаты полного CI, резервной копии перед migration, облачного выпуска и проверки worker добавляются после выполнения.
+- Функциональный commit `d6e74e08448cc315509cc67233535c5dcbebd34f`. [GitHub Actions](https://github.com/Alizhan2/Danaconnect/actions/runs/37061668676): 4 jobs success; **310 API passed**, 38.51 sec, 5 существующих deprecation warnings; **73 frontend** (58 прежних + 15 приглашений), обе TypeScript/production build проверки прошли.
+- CI повторил 280 HTTP/37 инвариантов календаря и 120 конкурентных HTTP + 4 подготовительных запроса/25 инвариантов приглашений на PostgreSQL 18.6. [CI evidence](verification/admin-invitations-ci-2026-10-03.json).
+- Перед миграцией создан private custom dump **141002 bytes**, SHA256 verified; отдельный зашифрованный архив **188088 bytes** успешно расшифрован побайтово, ключ сохранён отдельно. [Safe backup evidence](verification/team-backup-2026-10-03.json). Это локальная копия перед обновлением; offsite и новый полный restore этой копии не выполнялись. Предыдущий полный restore подтверждён в [отчёте восстановления](RECOVERY_AND_LOAD_2026-10-03.md).
+- Оператор проверил revision `0e82eab8e5ef`, применил ровно две новые таблицы/шесть индексов и подтвердил head **`52d790adb0ae`**. Реальные аккаунты и MFA credentials не менялись.
+- Vercel Production **`dpl_5G28Rg4Nmawh3Pzmq7T6GEM5g5xi`**, READY, [выпуск](https://danaconnect-njawppq4z-alizhan695-7132.vercel.app), alias [платформа](https://danaconnect.vercel.app)/[админка](https://danaconnect.vercel.app/admin). Публикация подтверждена **3 октября 01:40:20 Asia/Oral**.
+- После публикации **62/62 HTTP checks** прошли, включая страницу приглашения, no-referrer, закрытый список и отказы пустым/недоверенным POST без отправки писем. [Safe HTTP evidence](verification/production-http-team-2026-10-03.json).
+- READ ONLY worker наблюдение **3 октября 01:42:19 Asia/Oral**: success, finished **01:42:05**, age **13.98 sec**, summary содержит новый maintenance приглашений, revision `52d790adb0ae`. Цикл завершён после подтверждения выпуска в 01:40:20. [Safe worker snapshot](verification/worker-team-release-2026-10-03.json). Это снимок одного цикла, не непрерывный мониторинг.
+- Изолированные API/admin QA servers и локальный PostgreSQL server остановлены. Private cluster/backup сохранены.
