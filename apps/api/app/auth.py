@@ -90,13 +90,23 @@ def applicable_required_documents(db: Session, user: User, scopes=("registration
         and (not document.direction_id or document.direction_id in (user.direction_ids or []))]
 
 
-def current_required_versions(db: Session, user: User, scopes=("registration", "intake")) -> list[DocumentVersion]:
+def required_document_state(db: Session, user: User, scopes=("registration", "intake")) -> tuple[bool, list[DocumentVersion]]:
+    documents = applicable_required_documents(db, user, scopes)
     versions = []
-    for document in applicable_required_documents(db, user, scopes):
+    for document in documents:
         version = db.scalar(select(DocumentVersion).where(DocumentVersion.document_id == document.id).order_by(DocumentVersion.published_at.desc(), DocumentVersion.id.desc()).limit(1))
         if version:
             versions.append(version)
-    return versions
+    configured = len(versions) == len(documents)
+    if settings.environment == "production" and user.role != "admin":
+        for scope in ("registration", "showcase"):
+            if scope in scopes and not any(document.scope == scope for document in documents):
+                configured = False
+    return configured, versions
+
+
+def current_required_versions(db: Session, user: User, scopes=("registration", "intake")) -> list[DocumentVersion]:
+    return required_document_state(db, user, scopes)[1]
 
 
 def has_current_consents(db: Session, user: User, scopes=("registration", "intake")) -> bool:
@@ -104,15 +114,10 @@ def has_current_consents(db: Session, user: User, scopes=("registration", "intak
     # admission is controlled by assigned role and MFA, not participant enrollment.
     if user.role == "admin":
         return True
-    documents = applicable_required_documents(db, user, scopes)
-    versions = current_required_versions(db, user, scopes)
+    configured, versions = required_document_state(db, user, scopes)
     # A required document without a published version must never silently grant access.
-    if len(versions) != len(documents):
+    if not configured:
         return False
-    if settings.environment == "production" and user.role != "admin":
-        for scope in ("registration", "showcase"):
-            if scope in scopes and not any(document.scope == scope for document in documents):
-                return False
     required = {version.id for version in versions}
     accepted = set(db.scalars(select(Consent.document_version_id).where(Consent.user_id == user.id)).all())
     return required <= accepted

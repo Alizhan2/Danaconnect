@@ -21,6 +21,7 @@ deploy/backups
 .pytest_cache
 tmp
 artifacts
+docs/legal-drafts
 test-results
 playwright-report
 **/*.log

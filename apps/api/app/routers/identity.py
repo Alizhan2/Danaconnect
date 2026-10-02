@@ -16,7 +16,7 @@ from sqlalchemy import String, cast, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import admin_mfa_required, aware, current_required_versions, get_current_user, has_current_consents, matching_totp_step, requested_locale, require_active, require_admin, secret_hash, utcnow
+from app.auth import admin_mfa_required, aware, current_required_versions, get_current_user, has_current_consents, matching_totp_step, requested_locale, required_document_state, require_active, require_admin, secret_hash, utcnow
 from app.config import settings
 from app.database import get_db
 from app.models import AuditEvent, AuthChallenge, Consent, Direction, Document, DocumentVersion, Notification, Participation, RegistrationReview, SessionToken, User
@@ -349,12 +349,24 @@ def submit_registration(user: User = Depends(get_current_user), db: Session = De
         raise HTTPException(409, "Анкета уже отправлена или одобрена")
     if not active_profile_directions(db, user):
         raise HTTPException(409, "Выберите действующие направления")
+    if not required_document_state(db, user)[0]:
+        raise HTTPException(503, "Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.")
     if not has_current_consents(db, user):
         raise HTTPException(409, "Подтвердите все обязательные документы")
     user.account_status = "pending"
     audit(db, user, "registration.submitted", "user", user.id)
     db.commit()
     return self_user(user)
+
+
+@router.get("/me/registration-requirements")
+def registration_requirements(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    configured, versions = required_document_state(db, user)
+    accepted = set(db.scalars(select(Consent.document_version_id).where(Consent.user_id == user.id)).all())
+    required_ids = [version.id for version in versions]
+    return {"documents_configured": configured,
+            "required_version_ids": required_ids,
+            "unaccepted_version_ids": [identifier for identifier in required_ids if identifier not in accepted]}
 
 
 def localized_document(version, locale):

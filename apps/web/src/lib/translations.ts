@@ -2,6 +2,15 @@ import { growthTranslations } from "@/components/growth/translations";
 /** Russian source phrases map to Kazakh and English. User-generated text is never passed here. */
 export const phraseTranslations: Record<string, readonly [string, string]> = {
   ...growthTranslations,
+  "Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.": [
+    "Платформа командасы міндетті құжаттарды әлі жарияламады. Сауалнаманы жарияланғаннан кейін жіберуге болады.",
+    "The platform team has not published the required documents yet. You can submit your profile after they are published.",
+  ],
+  "Прочитайте обязательные документы ниже и отметьте подтверждение ознакомления с каждым из них.": [
+    "Төмендегі міндетті құжаттарды оқып, әрқайсысымен танысқаныңызды белгілеңіз.",
+    "Read the required documents below and confirm that you have read each one.",
+  ],
+  "Обновить документы": ["Құжаттарды жаңарту", "Refresh documents"],
   "Добавьте хотя бы одну ссылку на ваш опыт.": [
     "Тәжірибеңізді растайтын кем дегенде бір сілтеме қосыңыз.",
     "Add at least one link showing your experience.",

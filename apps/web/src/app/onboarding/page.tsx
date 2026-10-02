@@ -17,6 +17,12 @@ import {
   useLoad,
 } from "@/components/workflows/common";
 
+type RegistrationRequirements = {
+  documents_configured: boolean;
+  required_version_ids: string[];
+  unaccepted_version_ids: string[];
+};
+
 function evidenceProblem(values: string[]) {
   const links = values.map((value) => value.trim()).filter(Boolean);
   if (!links.length) return "Добавьте хотя бы одну ссылку на ваш опыт.";
@@ -38,13 +44,14 @@ export default function OnboardingPage() {
   const { health } = usePlatformStatus();
   const action = useAction();
   const load = useLoad(async () => {
-    const [user, directions, documents, notifications] = await Promise.all([
+    const [user, directions, documents, notifications, requirements] = await Promise.all([
       api<User>("/auth/me"),
       api<Direction[]>("/directions"),
       api<DocumentVersion[]>("/documents"),
       api<{ id: string; title: string; body: string }[]>("/notifications"),
+      api<RegistrationRequirements>("/me/registration-requirements"),
     ]);
-    return { user, directions, documents, notifications };
+    return { user, directions, documents, notifications, requirements };
   }, [locale]);
   const [draft, setDraft] = useState<User>();
   const [checked, setChecked] = useState<string[]>([]);
@@ -105,6 +112,10 @@ export default function OnboardingPage() {
   }
   async function submitDocuments() {
     await action.run(async () => {
+      if (!load.data?.requirements.documents_configured)
+        throw new Error("Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.");
+      if (load.data.requirements.unaccepted_version_ids.some((id) => !checked.includes(id)))
+        throw new Error("Прочитайте обязательные документы ниже и отметьте подтверждение ознакомления с каждым из них.");
       for (const document of load.data?.documents ?? []) {
         if (!document.accepted && checked.includes(document.id))
           await mutate(`/documents/${document.id}/consent`, {
@@ -121,8 +132,7 @@ export default function OnboardingPage() {
       ? null
       : new URLSearchParams(window.location.search).get("returnTo"),
   );
-  const required =
-    load.data?.documents.filter((document) => document.required) ?? [];
+  const documentsConfigured = load.data?.requirements.documents_configured === true;
   const directionsUnavailable = !load.data?.directions.length;
   const evidenceError = draft?.role === "mentor" ? evidenceProblem(draft.evidence_urls || []) : "";
   return (
@@ -363,6 +373,15 @@ export default function OnboardingPage() {
             )}
             <div className="panel">
               <h2>{tr("Документы и согласия")}</h2>
+              {load.data?.user.profile_completed && !documentsConfigured && (
+                <div className="notice" role="status">
+                  <p>{tr("Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.")}</p>
+                  <Button onClick={load.reload} disabled={action.busy || load.loading} variant="secondary">{tr("Обновить документы")}</Button>
+                </div>
+              )}
+              {documentsConfigured && load.data?.requirements.unaccepted_version_ids.length !== 0 && (
+                <p className="field-hint">{tr("Прочитайте обязательные документы ниже и отметьте подтверждение ознакомления с каждым из них.")}</p>
+              )}
               {health?.demo_mode && (
                 <div className="notice">
                   {tr(
@@ -417,7 +436,7 @@ export default function OnboardingPage() {
                   <hr className="divider" />
                 </div>
               ))}
-              {!load.data?.documents.length && (
+              {!load.data?.documents.length && !load.data?.user.profile_completed && (
                 <p>
                   {tr(
                     directionsUnavailable
@@ -430,11 +449,12 @@ export default function OnboardingPage() {
                 disabled={
                   action.busy ||
                   directionsUnavailable ||
+                  !documentsConfigured ||
                   !draft.profile_completed ||
                   !["draft", "changes_requested"].includes(
                     draft.account_status,
                   ) ||
-                  required.some((d) => !d.accepted && !checked.includes(d.id))
+                  load.data?.requirements.unaccepted_version_ids.some((id) => !checked.includes(id))
                 }
                 onClick={submitDocuments}
               >
