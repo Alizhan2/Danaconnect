@@ -20,6 +20,7 @@ from app.delivery import DeliveryUnavailable, enqueue_email, process_outbox
 from app.models import Booking, Notification, Slot, User, utcnow
 from app.models_calendar import AvailabilityRule, BookingReminder, GeneratedRuleSlot
 from app.models_operations import WorkerHeartbeat
+from app.jobs_admin_invites import cleanup_invitations
 from app.routers.bookings import _lock_users
 
 
@@ -198,7 +199,8 @@ def run_once(session_factory=SessionLocal):
                 heartbeat = db.get(WorkerHeartbeat, "calendar", populate_existing=True)
         heartbeat.started_at, heartbeat.status = utcnow(), "running"
         db.commit()
-    result = {"rules": regenerate_rules(session_factory), "reminders": enqueue_reminders(session_factory)}
+    result = {"invitations": cleanup_invitations(session_factory),
+              "rules": regenerate_rules(session_factory), "reminders": enqueue_reminders(session_factory)}
     try:
         result["email"] = process_outbox(session_factory)
     except DeliveryUnavailable:

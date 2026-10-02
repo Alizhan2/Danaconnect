@@ -36,6 +36,16 @@ class DeliveryFailure(RuntimeError):
         self.code, self.retryable = code, retryable
 
 
+def _recipient_refusal_retryable(refused: dict) -> bool:
+    # A single recipient refusal normally raises SMTPRecipientsRefused rather
+    # than returning from send_message. Keep addresses and server bodies out of
+    # failures; only numeric response classes affect the retry decision.
+    codes = [response[0] for response in refused.values()
+             if isinstance(response, (tuple, list)) and response
+             and isinstance(response[0], int)]
+    return not codes or any(400 <= code < 500 for code in codes)
+
+
 def cipher():
     key = settings.outbox_encryption_key
     if not key:
@@ -147,7 +157,9 @@ def send_email(payload: dict, dedup_key: str) -> str:
                 connection.login(settings.smtp_username, settings.smtp_password)
             refused = connection.send_message(message)
             if refused:
-                raise DeliveryFailure("smtp_recipient_refused", retryable=False)
+                raise DeliveryFailure("smtp_recipient_refused", retryable=_recipient_refusal_retryable(refused))
+    except smtplib.SMTPRecipientsRefused as exc:
+        raise DeliveryFailure("smtp_recipient_refused", retryable=_recipient_refusal_retryable(exc.recipients)) from None
     except smtplib.SMTPResponseException as exc:
         raise DeliveryFailure("smtp_response_" + str(exc.smtp_code), retryable=400 <= exc.smtp_code < 500) from None
     except (smtplib.SMTPException, OSError):
@@ -180,6 +192,19 @@ def process_outbox(session_factory=SessionLocal, *, limit: int = 20, sender=None
             if expiry and expiry <= utcnow():
                 raise DeliveryFailure("message_expired", retryable=False)
             payload = json.loads(decrypt_text(payload_blob))
+            # Cancellation/revocation may commit after claim. Recheck the
+            # current lease before beginning delivery, without holding a DB
+            # transaction across the provider call. An in-flight SMTP message
+            # still cannot be recalled or guaranteed exactly once.
+            with session_factory() as db:
+                current = db.scalar(select(EmailOutbox).where(
+                    EmailOutbox.id == identifier, EmailOutbox.lease_token == lease,
+                    EmailOutbox.status == "leased",
+                    EmailOutbox.encrypted_payload == payload_blob))
+                if current is None or not current.encrypted_payload:
+                    continue
+                if current.expires_at and current.expires_at <= utcnow():
+                    raise DeliveryFailure("message_expired", retryable=False)
             message_id = sender(payload, key)
             if not isinstance(message_id, str) or not message_id:
                 raise DeliveryFailure("provider_missing_receipt")

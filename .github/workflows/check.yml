@@ -52,11 +52,32 @@ jobs:
           --database-url-file artifacts/verification/ci-load-db.url
           --clients 20 --read-rounds 5
           --report artifacts/verification/postgres-load-ci.json
+      - name: Prepare second disposable database for invitation races
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from sqlalchemy import create_engine, text
+          maintenance = 'postgresql+psycopg://dc_pilot_operator:synthetic-ci-only@127.0.0.1:55432/postgres?sslmode=disable'
+          engine = create_engine(maintenance, isolation_level='AUTOCOMMIT')
+          with engine.connect() as connection:
+              connection.execute(text('CREATE DATABASE dc_pilot_load_invitations WITH TEMPLATE template0 ENCODING \'UTF8\' LOCALE_PROVIDER builtin BUILTIN_LOCALE \'C.UTF-8\''))
+          engine.dispose()
+          Path('artifacts/verification/ci-invitations-db.url').write_text(maintenance.replace('/postgres?', '/dc_pilot_load_invitations?') + '\n')
+          PY
+          chmod 600 artifacts/verification/ci-invitations-db.url
+      - name: Administrator invitation PostgreSQL races
+        run: >-
+          python scripts/verification/admin_invitation_pilot.py
+          --database-url-file artifacts/verification/ci-invitations-db.url
+          --clients 20
+          --report artifacts/verification/admin-invitations-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: postgres-concurrency-report
-          path: artifacts/verification/postgres-load-ci.json
+          path: |
+            artifacts/verification/postgres-load-ci.json
+            artifacts/verification/admin-invitations-ci.json
           if-no-files-found: warn
   web:
     runs-on: ubuntu-latest
@@ -90,6 +111,7 @@ jobs:
         working-directory: apps/admin
       - run: npm run typecheck
         working-directory: apps/admin
+      - run: node scripts/admin-invitation-tests.mjs
       - run: npm run build
         working-directory: apps/admin
         env:

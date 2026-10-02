@@ -39,6 +39,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 python-multipart==0.0.32
 PyYAML==6.0.3
+qrcode==8.2
 reportlab==4.5.1
 s3transfer==0.19.2
 six==1.17.0

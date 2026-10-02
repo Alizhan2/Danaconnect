@@ -25,6 +25,7 @@ from app.routers.ai import router as ai_router
 from app.routers.calendar_export import router as calendar_export_router
 from app.routers.notifications import router as notifications_router
 from app.routers.engagement import router as engagement_router
+from app.routers.admin_invitations import router as admin_invitations_router
 
 
 app = FastAPI(title="DanaConnect API", version="0.2.0")
@@ -81,3 +82,4 @@ app.include_router(ai_router, prefix="/api/v1")
 app.include_router(calendar_export_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(engagement_router, prefix="/api/v1")
+app.include_router(admin_invitations_router, prefix="/api/v1")

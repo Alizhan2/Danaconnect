@@ -22,7 +22,9 @@ from app.database import get_db
 from app.models import AuditEvent, AuthChallenge, Consent, Direction, Document, DocumentVersion, Notification, Participation, RegistrationReview, SessionToken, User
 from app.schemas.identity import ConsentInput, DirectionInput, DirectionUpdate, IntakeInput, MFAVerify, ProfileInput, RequestCode, ReviewInput, VerifyCode
 from app.transactions import lock_users
+from app.otp_limits import lock_otp_email
 from app.models_delivery import AdminCredential, ExternalIdentity, MFAChallenge, OAuthState, SessionAssurance
+from app.models_admin_invitations import AdminInvitationChallenge
 from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, delivery_ready, encrypt_text, enqueue_email, google_ready, otp_email
 
 
@@ -87,10 +89,15 @@ def request_code(payload: RequestCode, request: Request, db: Session = Depends(g
         if len(requests) >= 20:
             raise HTTPException(429, "Слишком много попыток. Повторите позже")
         requests.append(now)
+    lock_otp_email(db, email)
+    now = utcnow()
     recent = db.scalar(select(AuthChallenge).where(AuthChallenge.email == email).order_by(AuthChallenge.created_at.desc()).limit(1))
-    if recent and aware(recent.created_at) > now - timedelta(seconds=60):
+    recent_invitation = db.scalar(select(func.max(AdminInvitationChallenge.created_at)).where(AdminInvitationChallenge.email == email))
+    if ((recent and aware(recent.created_at) > now - timedelta(seconds=60))
+            or (recent_invitation and aware(recent_invitation) > now - timedelta(seconds=60))):
         raise HTTPException(429, "Повторный код можно запросить через 60 секунд")
     count = db.scalar(select(func.count(AuthChallenge.id)).where(AuthChallenge.email == email, AuthChallenge.created_at > now - timedelta(hours=1)))
+    count += db.scalar(select(func.count(AdminInvitationChallenge.id)).where(AdminInvitationChallenge.email == email, AdminInvitationChallenge.created_at > now - timedelta(hours=1)))
     if count >= 10:
         raise HTTPException(429, "Слишком много кодов для этого email. Повторите позже")
     challenge_id = str(uuid4())
