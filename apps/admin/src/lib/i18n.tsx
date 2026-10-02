@@ -2,6 +2,9 @@
 import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
 export type Locale='ru'|'kk'|'en';
 const phrases={
+  mfaTimeLeft:['Время для подтверждения','Растауға қалған уақыт','Time to confirm'],
+  mfaExpired:['Время подтверждения истекло. Запросите новый код по email, затем введите текущий код из Authenticator. Повторно сканировать QR не нужно.','Растау уақыты аяқталды. Email арқылы жаңа код сұраңыз, содан кейін Authenticator ішіндегі ағымдағы кодты енгізіңіз. QR кодын қайта сканерлеудің қажеті жоқ.','Confirmation expired. Request a new email code, then enter the current Authenticator code. You do not need to scan the QR again.'],
+  mfaInvalid:['Введите текущие 6 цифр из Authenticator для этого аккаунта. Дождитесь следующего кода, если предыдущий уже использован. На телефоне должна быть включена автоматическая дата и время.','Осы аккаунт үшін Authenticator ішіндегі ағымдағы 6 цифрды енгізіңіз. Алдыңғы код пайдаланылса, келесі кодты күтіңіз. Телефонда автоматты күн мен уақыт қосулы болуы керек.','Enter the current 6 digits from Authenticator for this account. Wait for the next code if the previous one was already used. Enable automatic date and time on your phone.'],
   requestId:['Номер запроса','Сұрау нөмірі','Request ID'],
   launch:['Подготовка пилота','Пилотқа дайындық','Pilot preparation'],
   activity:['Сопровождение и встречи','Сүйемелдеу және кездесулер','Mentorship and meetings'],

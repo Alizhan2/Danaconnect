@@ -169,7 +169,9 @@ def verify_mfa(payload: MFAVerify, response: Response, db: Session = Depends(get
     now = utcnow()
     invalid = HTTPException(400, "Код подтверждения неверный или истёк")
     challenge = db.scalar(select(MFAChallenge).where(MFAChallenge.token_hash == secret_hash(payload.mfa_challenge_id)))
-    if not challenge or challenge.consumed_at or aware(challenge.expires_at) <= now or challenge.attempts >= settings.otp_max_attempts:
+    if challenge and (challenge.consumed_at or aware(challenge.expires_at) <= now or challenge.attempts >= settings.otp_max_attempts):
+        raise HTTPException(410, "Время подтверждения MFA истекло или попытки завершены. Запросите новый код по email. Повторно сканировать QR не нужно.")
+    if not challenge:
         raise invalid
     user = lock_users(db, [challenge.user_id]).get(challenge.user_id)
     if not user or user.role != "admin" or user.account_status != "active":
