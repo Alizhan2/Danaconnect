@@ -4,7 +4,11 @@
 
 ## MFA администратора
 
-Откройте локальный `deploy/admin.enrollment.json`. В Google Authenticator или Microsoft Authenticator добавьте учётную запись вручную: название DanaConnect, ключ из `manual_entry_key`, тип — по времени. После импорта сообщите «MFA добавлен». Импорт не является подтверждением успешного входа. После сохранения аккаунта в authenticator удалите enrollment; не копируйте его в публичные документы или репозиторий.
+Откройте локальный `deploy/admin.enrollment.png`. В Google Authenticator или Microsoft Authenticator выберите добавление аккаунта по QR и отсканируйте изображение. Приложение покажет шестизначный код; его нужно ввести в форму MFA на `/admin/login`.
+
+Если сканирование недоступно, используйте `manual_entry_key` из `deploy/admin.enrollment.json` для добавления вручную, тип — по времени. После импорта сообщите «MFA добавлен». Импорт не является подтверждением успешного входа. После сохранения аккаунта в authenticator удалите enrollment JSON и PNG; оба содержат секрет и исключены из Git, Vercel upload и Docker context.
+
+Повторный локальный экспорт существующего enrollment: `python deploy/enrollment_qr.py --enrollment deploy/admin.enrollment.json`. Нужны зависимости `deploy/requirements.operator.txt`. Экспорт использует существующий ключ, не обращается к БД и не меняет MFA credential. Существующее изображение не перезаписывается.
 
 ## Почта без собственного домена
 

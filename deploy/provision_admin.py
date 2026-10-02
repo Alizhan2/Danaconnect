@@ -6,6 +6,7 @@ to a database or create an enrollment. It never sends an invitation email.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 from pathlib import Path
 import subprocess
 import sys
@@ -45,6 +46,7 @@ def main() -> int:
     parser.add_argument("--name")
     parser.add_argument("--secret-output", type=Path,
                         help="New *.enrollment.json inside deploy/enrollments")
+    parser.add_argument("--no-qr", action="store_true", help="Explicitly use manual MFA enrollment without a QR image")
     args = parser.parse_args()
     if not args.apply:
         print("Additional administrators have full admin permissions and require MFA.")
@@ -56,6 +58,13 @@ def main() -> int:
         return 2
     try:
         output = enrollment_path(args.secret_output)
+        if not args.no_qr:
+            if not importlib.util.find_spec("qrcode") or not importlib.util.find_spec("PIL"):
+                print("Install deploy/requirements.operator.txt before provisioning with QR enrollment.")
+                return 2
+            if output.with_suffix(".png").exists():
+                print("QR output already exists. Choose a new enrollment destination.")
+                return 2
         from migrate_external import migration_chain, private_environment
         from vercel_config import read_env
         values = read_env(args.env_file.resolve())
@@ -76,6 +85,14 @@ def main() -> int:
             print("Existing participant accounts and administrators with MFA are not overwritten.")
             return 1
         print("Administrator provisioned with MFA. Private enrollment saved at the requested location.")
+        if not args.no_qr:
+            try:
+                from enrollment_qr import export_qr
+                export_qr(output)
+                print("Private QR enrollment created next to the JSON file.")
+            except Exception:
+                print("Administrator exists, but QR export was not confirmed. Use the saved enrollment with enrollment_qr.py.")
+                return 1
         print("Share it privately with this administrator only; no email was sent.")
         return 0
     except KeyboardInterrupt:

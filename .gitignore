@@ -42,6 +42,8 @@ deploy/.env.worker
 deploy/backups/
 private_uploads/
 *.enrollment.json
+*.enrollment.png
+*.enrollment.html
 
 # Local screenshots may contain account or participant information
 docs/evidence/

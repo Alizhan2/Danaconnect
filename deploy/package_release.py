@@ -19,7 +19,7 @@ def safe_file(path: Path) -> bool:
         return False
     if path.name.startswith(".env") and not (path.name == ".env.example" or path.name.endswith(".example")):
         return False
-    if path.name.endswith((".enrollment.json", ".tsbuildinfo")):
+    if path.name.endswith((".enrollment.json", ".enrollment.png", ".enrollment.html", ".tsbuildinfo")):
         return False
     for ancestor in [path, *path.parents]:
         if ancestor == ROOT:
@@ -45,7 +45,7 @@ def collect_sources() -> dict[str, bytes]:
             paths.update(path for path in (directory / "public").rglob("*") if path.suffix.lower() in PUBLIC_TYPES)
     paths.update(path for path in (ROOT / "apps/api/assets/fonts").glob("*") if path.suffix.lower() in {".ttf", ".txt", ".md"})
     paths.update(path for path in (ROOT / "scripts").rglob("*") if path.suffix in {".py", ".ps1", ".sh", ".mjs"})
-    paths.update(ROOT / "deploy" / name for name in ["generate_config.py", "readiness.py", "package_release.py", "vercel_config.py", "migrate_external.py", "configure_qstash.py", "provision_admin.py", "compose.worker.yml", "Caddyfile", "s3-policy.example.json", "vercel.cron.example.json", ".env.production.example", ".env.worker.example", ".env.vercel.example"])
+    paths.update(ROOT / "deploy" / name for name in ["generate_config.py", "readiness.py", "package_release.py", "vercel_config.py", "migrate_external.py", "configure_qstash.py", "provision_admin.py", "enrollment_qr.py", "requirements.operator.txt", "compose.worker.yml", "Caddyfile", "s3-policy.example.json", "vercel.cron.example.json", ".env.production.example", ".env.worker.example", ".env.vercel.example"])
     paths.update(ROOT / "docs" / name for name in ["CLOUD_RUNBOOK.md", "RELEASE_PREPARATION.md", "IMPLEMENTATION_STATUS.md", "PILOT_RELEASE_PLAN.md", "MONITORING_RUNBOOK.md", "BLOB_STORAGE.md", "ACTIVATION_STATUS.md", "OWNER_ACTIVATION.md", "QSTASH_RUNBOOK.md", "GIT_DEPLOYMENT.md", "TEAM_LAUNCH.md"])
     contents = {}
     for path in sorted(paths):

@@ -12,6 +12,8 @@
 **/private_uploads
 deploy/backups
 **/*.enrollment.json
+**/*.enrollment.png
+**/*.enrollment.html
 **/tests
 **/*.docx
 **/*.xlsx
