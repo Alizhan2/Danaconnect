@@ -35,4 +35,13 @@
 
 ## Локальные доказательства
 
-В игнорируемых каталогах сохранены `artifacts/verification/*` и `artifacts/frontend-verification-20261002/*`: логи pytest/TAP, матрица API, HTTP smoke и отчёт облачных подключений. Эти файлы не отправляются в Git и Vercel. Новый deployment и проверки после него фиксируются после завершения публикации.
+В игнорируемых каталогах сохранены `artifacts/verification/*` и `artifacts/frontend-verification-20261002/*`: логи pytest/TAP, матрица API, HTTP smoke и отчёт облачных подключений. Эти файлы не отправляются в Git и Vercel.
+
+## Публикация и повторная проверка
+
+- Коммит исправлений: `82d056e789a4def0e0e3d323c3e305826782c8ae`.
+- [GitHub Actions этого коммита](https://github.com/Alizhan2/Danaconnect/actions/runs/37045561546): все три jobs успешно завершены, включая новые автоматические тесты.
+- Vercel Production READY: `dpl_76W15op5SYtu7r9rsEUaSYVPCUTU`; alias [danaconnect.vercel.app](https://danaconnect.vercel.app), [админка](https://danaconnect.vercel.app/admin).
+- После публикации повторены 54 HTTP-проверки: все ожидаемые статусы совпали, `nosniff`, `DENY` и `strict-origin-when-cross-origin` присутствуют на всех проверенных HTML-страницах. Отчёт `artifacts/verification/production-http-after-release.json`.
+- Повторное чтение worker в транзакции READ ONLY: status success, цикл завершён 2 октября в 23:14:05 Asia/Oral, возраст 106 секунд на момент проверки. Отчёт `artifacts/verification/worker-after-release.json`.
+- Первая попытка публикации получила Not authorized; после проверки авторизации существующего аккаунта повторная CLI-публикация завершилась успешно. Защита deployment и права доступа не ослаблялись.
