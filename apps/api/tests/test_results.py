@@ -1,6 +1,6 @@
 """Isolated lifecycle/privacy regressions using real transactions and domain checks."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -30,7 +30,7 @@ def results_harness(tmp_path):
     with factory() as db:
         for identifier, role in [("mentee", "mentee"), ("mentor", "mentor"), ("stranger", "mentee"), ("admin", "admin")]:
             db.add(User(id=identifier, email=f"{identifier}@test.invalid", full_name=identifier,
-                        role=role, account_status="active", profile_completed=True))
+                        role=role, account_status="active", profile_completed=True, city="Synthetic city", birth_date=date(2000, 1, 1), bio="Synthetic result biography", expertise="Synthetic mentoring expertise", evidence_urls=["https://example.test/synthetic"], direction_ids=["direction"], organization="Synthetic workplace", phone="+7 700 000 00 00", mentor_commitment=role == "mentor", mentor_commitment_accepted_at=utcnow() if role == "mentor" else None))
         db.add(Direction(id="direction", slug="test", name_ru="Test"))
         db.commit()
         db.add(Project(id="project", owner_id="mentee", mentor_id="mentor", direction_id="direction",

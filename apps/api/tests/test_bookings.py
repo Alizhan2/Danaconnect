@@ -1,6 +1,6 @@
 """Isolated calendar domain checks; authentication is tested by identity tests."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from fastapi import Depends, FastAPI, Header
@@ -28,7 +28,11 @@ def bookings_harness(tmp_path):
     with factory() as db:
         for user_id, role in [("mentor", "mentor"), ("mentor2", "mentor"), ("m1", "mentee"), ("m2", "mentee")]:
             db.add(User(id=user_id, email=f"{user_id}@test.invalid", full_name=user_id,
-                        role=role, account_status="active", profile_completed=True, intake_open=role == "mentor"))
+                        role=role, account_status="active", profile_completed=True, intake_open=role == "mentor",
+                        city="Synthetic city", organization="Synthetic workplace", phone="+7 700 000 00 00",
+                        birth_date=date(2000, 1, 1), bio="Synthetic calendar biography", expertise="Synthetic mentoring expertise",
+                        evidence_urls=["https://example.test/synthetic"], direction_ids=["synthetic-direction"],
+                        mentor_commitment=role == "mentor", mentor_commitment_accepted_at=datetime.now(timezone.utc) if role == "mentor" else None))
         db.commit()
 
     def sessions():

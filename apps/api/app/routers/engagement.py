@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.auth import has_current_consents, require_active
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import ConversationMember, Message, User, utcnow
 from app.models_engagement import MessageRead
@@ -51,7 +52,7 @@ def summary(user: User = Depends(require_active), db: Session = Depends(get_db))
 def read_messages(conversation_id: str, payload: ReadInput, user: User = Depends(require_active), db: Session = Depends(get_db)):
     identifier = user.id
     user = lock_users(db, [identifier])[identifier]
-    if user.account_status != "active" or (user.role != "admin" and not user.profile_completed) or not has_current_consents(db, user):
+    if user.account_status != "active" or (user.role != "admin" and not admitted_profile(user)) or not has_current_consents(db, user):
         raise HTTPException(403, "Для сообщений нужны одобренная анкета и актуальные документы")
     membership = db.scalar(select(ConversationMember.id).where(ConversationMember.conversation_id == conversation_id, ConversationMember.user_id == identifier))
     if not membership:

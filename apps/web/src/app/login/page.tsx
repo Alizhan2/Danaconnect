@@ -7,6 +7,7 @@ import { usePlatformStatus } from "@/components/platform-status";
 import { useLocale } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
+import { onboardingPath, participantRole } from "@/lib/registration";
 import {
   ActionNotice,
   LoadState,
@@ -33,6 +34,7 @@ function Login() {
   const search = useSearchParams();
   const action = useAction();
   const returnTo = safeReturnTo(search.get("returnTo"));
+  const role = participantRole(search.get("role"));
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [challenge, setChallenge] = useState<Challenge>();
@@ -44,8 +46,8 @@ function Login() {
   );
   function finish(user: User) {
     router.push(
-      user.role === "unchosen" || user.account_status !== "active"
-        ? `/onboarding?returnTo=${encodeURIComponent(returnTo)}`
+      user.role === "unchosen" || user.account_status !== "active" || (user.role !== "admin" && user.profile_completed === false)
+        ? onboardingPath(user.role === "unchosen" ? role : undefined, returnTo)
         : returnTo,
     );
     router.refresh();
@@ -81,9 +83,9 @@ function Login() {
   }
   async function google() {
     await action.run(async () => {
-      const result = await api<{ authorization_url: string }>(
-        `/auth/google/start?locale=${locale}`,
-      );
+      const query = new URLSearchParams({ locale, return_to: returnTo });
+      if (role) query.set("role", role);
+      const result = await api<{ authorization_url: string }>(`/auth/google/start?${query.toString()}`);
       const target = new URL(result.authorization_url);
       if (
         target.protocol !== "https:" ||
@@ -99,6 +101,7 @@ function Login() {
         <div className="panel auth-card">
           <p className="eyebrow">DANACONNECT</p>
           <h1>{mfa ? tr("Защита аккаунта") : t.login}</h1>
+          {role && !mfa && <p className="notice">{tr(role === "mentor" ? "Регистрация ментора: подтвердите свою почту, затем заполните анкету." : "Регистрация менти: подтвердите свою почту, затем заполните анкету.")}</p>}
           <p>
             {tr("Войдите по одноразовому коду.")}
             {health?.demo_mode && (
@@ -189,6 +192,7 @@ function Login() {
               </div>
             )}
           </LoadState>
+          <div className="actions"><Button href="/register" variant="ghost">{tr("Посмотреть поля регистрации")}</Button></div>
         </div>
       </div>
     </AppShell>

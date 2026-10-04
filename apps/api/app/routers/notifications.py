@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import applicable_required_documents, current_required_versions, get_current_user, has_current_consents
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import Application, Booking, Consent, Notification, Participation, Slot, User, utcnow
 
@@ -96,7 +97,7 @@ def next_steps(user: User = Depends(get_current_user), db: Session = Depends(get
     if user.role == "admin":
         add("administration", "Откройте административную панель", "Проверьте анкеты, проекты и состояние системы.", "/admin")
     else:
-        if user.role == "unchosen" or not user.profile_completed:
+        if user.role == "unchosen" or not admitted_profile(user):
             add("profile", "Заполните профиль", "Выберите роль, направления и заполните обязательные поля анкеты.", "/onboarding")
         if user.account_status == "changes_requested":
             add("corrections", "Исправьте анкету", "В профиле доступен комментарий команды. После исправлений отправьте анкету повторно.", "/onboarding")
@@ -104,11 +105,11 @@ def next_steps(user: User = Depends(get_current_user), db: Session = Depends(get
             add("documents", "Проверьте обязательные документы",
                 "Команда ещё не опубликовала все обязательные документы. Следите за обновлениями профиля." if missing_documents else
                 "Прочитайте актуальные версии и сохраните подтверждение ознакомления.", "/onboarding")
-        if user.account_status == "draft" and user.profile_completed and consents_current:
+        if user.account_status == "draft" and admitted_profile(user) and consents_current:
             add("submit", "Отправьте анкету на проверку", "Профиль заполнен. Отправьте анкету через раздел документов и согласий.", "/onboarding")
         if user.account_status == "pending":
             add("review", "Дождитесь проверки анкеты", "Анкета ожидает решения команды. Решение появится в уведомлениях и профиле.", "/onboarding")
-        if user.account_status == "active" and user.profile_completed and consents_current:
+        if user.account_status == "active" and admitted_profile(user) and consents_current:
             if pending_applications:
                 add("applications", "Проверьте заявки", "В рабочем пространстве есть заявки, ожидающие решения." if user.role == "mentor" else
                     "Ваши заявки ожидают решения ментора. Статус доступен в рабочем пространстве.", "/dashboard")
@@ -121,7 +122,7 @@ def next_steps(user: User = Depends(get_current_user), db: Session = Depends(get
             if participation_counts.get("active", 0) and not upcoming_count:
                 add("calendar", "Проверьте расписание", "У вас есть текущее участие. Откройте календарь; новые встречи доступны для активного участия.", "/calendar")
     if upcoming_count:
-        admitted = user.role == "admin" or (user.account_status == "active" and user.profile_completed and consents_current)
+        admitted = user.role == "admin" or (user.account_status == "active" and admitted_profile(user) and consents_current)
         add("meeting", "Подготовьтесь к ближайшей встрече",
             "Проверьте время, часовой пояс и актуальную ссылку в календаре." if admitted else
             "У вас запланирована встреча. Для доступа к календарю нужны одобренный профиль и актуальные согласия.",
@@ -129,7 +130,7 @@ def next_steps(user: User = Depends(get_current_user), db: Session = Depends(get
     if not steps:
         add("workspace", "Откройте рабочее пространство", "Проверьте свои заявки, участия и результаты.", "/dashboard")
     return {"account_status": user.account_status, "role": user.role,
-        "profile_completed": user.profile_completed, "consents_current": consents_current,
+        "profile_completed": admitted_profile(user), "consents_current": consents_current,
         "pending_documents": pending_documents, "documents_unavailable": missing_documents,
         "intake_open": user.intake_open, "pending_applications": pending_applications,
         "ongoing_participations": ongoing, "paused_participations": participation_counts.get("paused", 0), "upcoming_bookings": upcoming_count,

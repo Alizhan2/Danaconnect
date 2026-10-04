@@ -96,6 +96,7 @@ jobs:
       - run: node scripts/date-format-tests.mjs
       - run: node scripts/download-tests.mjs
       - run: node scripts/mobile-navigation-tests.mjs
+      - run: node scripts/registration-tests.mjs
       - run: npm run build
         working-directory: apps/web
   admin:
@@ -112,6 +113,7 @@ jobs:
       - run: npm run typecheck
         working-directory: apps/admin
       - run: node scripts/admin-invitation-tests.mjs
+      - run: node scripts/admin-registration-tests.mjs
       - run: npm run build
         working-directory: apps/admin
         env:

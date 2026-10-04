@@ -9,6 +9,8 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, has_current_consents, require_active, require_admin
+from app.profile_state import admitted_profile
+from app.project_access import project_is_public
 from app.config import settings
 from app.database import get_db
 from app.delivery import DeliveryUnavailable, enqueue_email
@@ -41,7 +43,7 @@ def member(db, project, user):
 
 
 def private_permission(db, project, user, *, allow_invitee=False):
-    if user.account_status != "active" or (user.role != "admin" and not user.profile_completed) or not has_current_consents(db, user):
+    if user.account_status != "active" or (user.role != "admin" and not admitted_profile(user)) or not has_current_consents(db, user):
         raise HTTPException(403, "Аккаунт не допущен к закрытым материалам")
     if user.role != "admin" and not member(db, project, user) and not allow_invitee:
         raise HTTPException(404, "Нет доступа к закрытым материалам проекта")
@@ -68,7 +70,7 @@ def get_project(db, project_id, user, *, private=False):
         raise HTTPException(404, "Проект не найден")
     if private:
         private_permission(db, project, user)
-    elif project.visibility_status != "published" and user.role != "admin" and not member(db, project, user):
+    elif not project_is_public(db, project) and user.role != "admin" and not member(db, project, user):
         raise HTTPException(404, "Проект не найден")
     return project
 
@@ -88,7 +90,7 @@ def team_occupied(db, project):
 
 def comment_view(db, comment):
     author = db.get(User, comment.author_id)
-    return {"id": comment.id, "project_id": comment.project_id, "author_id": comment.author_id, "author_name": author.full_name if author and author.account_status == "active" else "Участник", "scope": comment.scope, "status": comment.status, "body": comment.body, "created_at": comment.created_at}
+    return {"id": comment.id, "project_id": comment.project_id, "author_id": comment.author_id, "author_name": author.full_name if author and author.account_status == "active" and admitted_profile(author) else "Участник", "scope": comment.scope, "status": comment.status, "body": comment.body, "created_at": comment.created_at}
 
 
 @router.get("/projects/{project_id}/comments")

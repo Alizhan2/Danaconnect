@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.auth import has_current_consents
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import SessionLocal
 from app.delivery import DeliveryUnavailable, enqueue_email, process_outbox
 from app.models import Booking, Notification, Slot, User, utcnow
@@ -95,7 +96,7 @@ def regenerate_rules(session_factory=SessionLocal, *, limit=100):
                 mentor_id = rule.mentor_id
                 people = _lock_users(db, [mentor_id])
                 mentor = people[mentor_id]
-                if mentor.role != "mentor" or mentor.account_status != "active" or not mentor.profile_completed or not has_current_consents(db, mentor):
+                if mentor.role != "mentor" or mentor.account_status != "active" or not admitted_profile(mentor) or not has_current_consents(db, mentor):
                     stats["skipped"] += 1
                     db.rollback()
                     continue

@@ -6,7 +6,8 @@ import { AppShell } from "@/components/shell";
 import { Badge, Button, Field } from "@/components/ui";
 import { useLocale, translatePhrase as tr } from "@/lib/i18n";
 import { usePlatformStatus } from "@/components/platform-status";
-import { AITextAssistant, AIReviewPreference } from "@/components/ai-assistant";
+import { RegistrationFields } from "@/components/registration-fields";
+import { profilePendingChanges, registrationProblem, registrationValues, requestedRole } from "@/lib/registration";
 import {
   ActionNotice,
   LoadState,
@@ -22,22 +23,6 @@ type RegistrationRequirements = {
   required_version_ids: string[];
   unaccepted_version_ids: string[];
 };
-
-function evidenceProblem(values: string[]) {
-  const links = values.map((value) => value.trim()).filter(Boolean);
-  if (!links.length) return "Добавьте хотя бы одну ссылку на ваш опыт.";
-  if (links.length > 10) return "Можно добавить не более 10 ссылок.";
-  for (const link of links) {
-    try {
-      const url = new URL(link);
-      if (!["http:", "https:"].includes(url.protocol) || link.length > 2083)
-        return "Укажите полный адрес сайта, например https://github.com/username. Каждая ссылка — с новой строки.";
-    } catch {
-      return "Укажите полный адрес сайта, например https://github.com/username. Каждая ссылка — с новой строки.";
-    }
-  }
-  return "";
-}
 
 export default function OnboardingPage() {
   const { t, locale, tr } = useLocale();
@@ -59,13 +44,14 @@ export default function OnboardingPage() {
     if (load.data) {
       const user = load.data.user;
       setDraft((current) =>
-        current && current.id === user.id
+        current && current.id === user.id && (user.role === "unchosen" || current.role === user.role)
           ? {
               ...current,
               account_status: user.account_status,
               profile_completed: user.profile_completed,
+              mentor_commitment_accepted_at: user.mentor_commitment_accepted_at,
             }
-          : user,
+          : { ...user, role: requestedRole(user.role, typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("role")) },
       );
       setChecked([]);
     }
@@ -78,41 +64,29 @@ export default function OnboardingPage() {
     if (!draft) return;
     await action.run(async () => {
       const availableDirections = load.data?.directions ?? [];
-      if (!availableDirections.length)
-        throw new Error("Направления пока не открыты. Команда платформы готовит список. Вы сможете завершить анкету, когда он появится.");
-      if (!draft.direction_ids.length || draft.direction_ids.length > 10 ||
-          draft.direction_ids.some((id) => !availableDirections.some((direction) => direction.id === id)))
-        throw new Error("Выберите от 1 до 10 доступных направлений.");
-      if (draft.role === "mentor") {
-        const problem = evidenceProblem(draft.evidence_urls || []);
+      if (draft.role !== "admin") {
+        const problem = registrationProblem(draft, availableDirections);
         if (problem) throw new Error(problem);
       }
-      await mutate(
+      const values = registrationValues(draft);
+      const saved = await mutate<User>(
         "/me/profile",
         {
           preferred_locale: locale,
-          full_name: draft.full_name,
-          ...(draft.role === "admin" ? {} : { role: draft.role }),
-          timezone: draft.timezone,
-          city: draft.city,
-          phone: draft.phone || "",
-          birth_date: draft.birth_date || null,
-          bio: draft.bio || "",
-          expertise: draft.expertise || "",
-          evidence_urls: (draft.evidence_urls || [])
-            .map((value) => value.trim())
-            .filter(Boolean),
-          direction_ids: draft.direction_ids,
-          capacity: draft.capacity ?? 1,
+          ...values,
+          ...(draft.role === "admin" ? { role: undefined } : {}),
         },
         "PUT",
       );
+      setDraft(saved);
       window.dispatchEvent(new Event("danaconnect:profile-updated"));
       await load.reload();
     }, tr("Профиль сохранён. Проверьте актуальные документы ниже."));
   }
   async function submitDocuments() {
     await action.run(async () => {
+      if (draft && load.data?.user && profilePendingChanges(draft, load.data.user))
+        throw new Error("Сначала сохраните изменения анкеты.");
       if (!load.data?.requirements.documents_configured)
         throw new Error("Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.");
       if (load.data.requirements.unaccepted_version_ids.some((id) => !checked.includes(id)))
@@ -135,7 +109,7 @@ export default function OnboardingPage() {
   );
   const documentsConfigured = load.data?.requirements.documents_configured === true;
   const directionsUnavailable = !load.data?.directions.length;
-  const evidenceError = draft?.role === "mentor" ? evidenceProblem(draft.evidence_urls || []) : "";
+  const profileDirty = Boolean(draft && load.data?.user && profilePendingChanges(draft, load.data.user));
   return (
     <AppShell
       title={tr("Профиль и регистрация")}
@@ -179,11 +153,12 @@ export default function OnboardingPage() {
               {draft.account_status === "active" && (
                 <div className="notice">
                   {tr(
-                    "Изменение имени, описания, экспертизы, подтверждений, направлений или вместимости потребует повторной модерации и временно закроет набор.",
+                    "Изменение данных анкеты потребует повторной модерации и временно закроет набор.",
                   )}
                 </div>
               )}
-              <form onSubmit={save} className="form-grid">
+              <form onSubmit={save} className="form-grid" aria-busy={action.busy}>
+                <fieldset disabled={action.busy} className="form-grid full-width" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <Field label={tr("Роль")}>
                   <select
                     value={draft.role}
@@ -205,143 +180,7 @@ export default function OnboardingPage() {
                     )}
                   </select>
                 </Field>
-                <Field label={tr("Имя и фамилия")}>
-                  <input
-                    required
-                    minLength={2}
-                    maxLength={160}
-                    value={draft.full_name}
-                    onChange={(e) => update("full_name", e.target.value)}
-                  />
-                </Field>
-                <Field label={t.city}>
-                  <input
-                    required
-                    maxLength={120}
-                    value={draft.city}
-                    onChange={(e) => update("city", e.target.value)}
-                  />
-                </Field>
-                <Field
-                  label={t.timezone}
-                  hint={tr("Название IANA, например Asia/Oral или Asia/Almaty")}
-                >
-                  <input
-                    required
-                    value={draft.timezone}
-                    onChange={(e) => update("timezone", e.target.value)}
-                  />
-                </Field>
-                {draft.role === "mentee" && (
-                  <Field label={tr("Дата рождения")}>
-                    <input
-                      type="date"
-                      required
-                      value={draft.birth_date?.slice(0, 10) || ""}
-                      onChange={(e) => update("birth_date", e.target.value)}
-                    />
-                  </Field>
-                )}
-                <Field label={tr("Телефон (необязательно)")}>
-                  <input
-                    type="tel"
-                    maxLength={40}
-                    value={draft.phone || ""}
-                    onChange={(e) => update("phone", e.target.value)}
-                  />
-                </Field>
-                <div className="full-width">
-                  <Field label={tr("О себе и целях")}>
-                    <textarea
-                      required
-                      minLength={10}
-                      maxLength={5000}
-                      value={draft.bio || ""}
-                      onChange={(e) => update("bio", e.target.value)}
-                    />
-                  </Field>
-                </div>
-                {draft.role === "mentor" && (
-                  <>
-                    <div className="full-width">
-                      <Field label={t.expertise}>
-                        <textarea
-                          required
-                          minLength={10}
-                          maxLength={3000}
-                          value={draft.expertise || ""}
-                          onChange={(e) => update("expertise", e.target.value)}
-                        />
-                      </Field>
-                    </div>
-                    <Field
-                      label={tr("Ссылки на опыт")}
-                      hint={tr(
-                        "Ссылки на LinkedIn, GitHub, портфолио или публикации — по одной в строке, до 10. Видны только команде проверки.",
-                      )}
-                    >
-                      <textarea
-                        required
-                        placeholder={"https://www.linkedin.com/in/username\nhttps://github.com/username"}
-                        aria-invalid={Boolean(evidenceError && draft.evidence_urls?.some((value) => value.trim()))}
-                        aria-describedby={evidenceError ? "evidence-error" : undefined}
-                        value={(draft.evidence_urls || []).join("\n")}
-                        onChange={(e) => {
-                          const links = e.target.value.split("\n");
-                          e.currentTarget.setCustomValidity(tr(evidenceProblem(links)));
-                          update("evidence_urls", links);
-                        }}
-                      />
-                      {evidenceError && draft.evidence_urls?.some((value) => value.trim()) &&
-                        <span id="evidence-error" className="field-hint">{tr(evidenceError)}</span>}
-                    </Field>
-                    <Field
-                      label={tr("Сколько менти готовы вести одновременно")}
-                      hint={tr("Например, 3 — до трёх менти одновременно. 0 — свободных мест нет.")}
-                    >
-                      <input
-                        type="number"
-                        min={0}
-                        max={50}
-                        required
-                        value={draft.capacity ?? 1}
-                        onChange={(e) =>
-                          update("capacity", Number(e.target.value))
-                        }
-                      />
-                    </Field>
-                  </>
-                )}
-                <fieldset className="full-width panel">
-                  <legend>{tr("Направления")}</legend>
-                  {directionsUnavailable ? (
-                    <div className="notice" role="status">
-                      <p>{tr("Направления пока не открыты. Команда платформы готовит список. Вы сможете завершить анкету, когда он появится.")}</p>
-                      <Button onClick={load.reload} disabled={load.loading || action.busy} variant="secondary">{tr("Обновить список направлений")}</Button>
-                    </div>
-                  ) : <p className="field-hint">{tr("Выберите от 1 до 10 доступных направлений.")}</p>}
-                  <div className="tags">
-                    {load.data?.directions.map((direction) => (
-                      <label className="check-row" key={direction.id}>
-                        <input
-                          type="checkbox"
-                          checked={draft.direction_ids.includes(direction.id)}
-                          onChange={(e) =>
-                            update(
-                              "direction_ids",
-                              e.target.checked
-                                ? [...draft.direction_ids, direction.id]
-                                : draft.direction_ids.filter(
-                                    (id) => id !== direction.id,
-                                  ),
-                            )
-                          }
-                        />
-                        {direction[`name_${locale}`]}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                {draft.role !== "unchosen" && <RegistrationFields draft={draft} directions={load.data?.directions || []} update={update} reloadDirections={load.reload} loading={load.loading || action.busy} />}
                 <div className="full-width actions">
                   <Button
                     type="submit"
@@ -358,22 +197,12 @@ export default function OnboardingPage() {
                     {tr("Обновить статус")}
                   </Button>
                 </div>
+                </fieldset>
               </form>
             </div>
-            {draft.role !== "admin" && (
-              <>
-                <AITextAssistant
-                  purpose="profile"
-                  initialText={draft.bio || ""}
-                  onApply={(proposal) =>
-                    update("bio", proposal.description.slice(0, 5000))
-                  }
-                />
-                <AIReviewPreference />
-              </>
-            )}
             <div className="panel">
               <h2>{tr("Документы и согласия")}</h2>
+              {profileDirty && <p className="notice" role="status">{tr("Сначала сохраните изменения анкеты.")}</p>}
               {load.data?.user.profile_completed && !documentsConfigured && (
                 <div className="notice" role="status">
                   <p>{tr("Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.")}</p>
@@ -449,6 +278,7 @@ export default function OnboardingPage() {
               <Button
                 disabled={
                   action.busy ||
+                  profileDirty ||
                   directionsUnavailable ||
                   !documentsConfigured ||
                   !draft.profile_completed ||

@@ -6,6 +6,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 from app.auth import get_current_user, has_current_consents, require_admin
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import (Application, Booking, Consent, Document, DocumentVersion,
     Feedback, Message, Notification, Participation, Project, RegistrationReview,
@@ -80,7 +81,7 @@ def account_status(user_id: str, payload: StatusInput,
     else:
         review = db.scalar(select(RegistrationReview).where(RegistrationReview.user_id == user.id)
             .order_by(RegistrationReview.created_at.desc(), RegistrationReview.id.desc()).limit(1))
-        if user.account_status != "suspended" or not user.profile_completed or not review or review.decision != "approved":
+        if user.account_status != "suspended" or not admitted_profile(user) or not review or review.decision != "approved":
             raise HTTPException(409, "Возобновить можно только ранее одобренный аккаунт. Для анкеты используйте очередь модерации")
         if not has_current_consents(db, user):
             # Allow login and consent renewal, but never restore active access yet.

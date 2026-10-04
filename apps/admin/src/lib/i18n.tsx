@@ -3,6 +3,13 @@ import {createContext,useContext,useEffect,useState,type ReactNode} from 'react'
 import {formatDateTime} from './date-format';
 export type Locale='ru'|'kk'|'en';
 const phrases={
+  phone:['Телефон','Телефон','Phone'],
+  organization:['Место учёбы или работы','Оқу немесе жұмыс орны','School or workplace'],
+  notProvided:['Не указано','Көрсетілмеген','Not provided'],
+  allRoles:['Менти и менторы','Менти және менторлар','Mentees and mentors'],
+  mentorCommitment:['Обязательство открывать набор и принимать группу не реже раза в 3–6 месяцев','Қабылдауды ашып, топты кемінде 3–6 айда бір рет қабылдау міндеттемесі','Commitment to open intake and accept a group at least once every 3–6 months'],
+  commitmentConfirmed:['Подтверждено участником','Қатысушы растады','Confirmed by the participant'],
+  commitmentMissing:['Не подтверждено участником','Қатысушы растаған жоқ','Not confirmed by the participant'],
   adminInvitations:['Приглашения администраторов','Әкімші шақырулары','Administrator invitations'],
   inviteNote:['Пригласите нового администратора по email. Получатель сам подтвердит почту и настроит Authenticator через QR.','Жаңа әкімшіні email арқылы шақырыңыз. Алушы поштасын растап, Authenticator қолданбасын QR арқылы өзі баптайды.','Invite a new administrator by email. The recipient verifies their email and sets up Authenticator using a QR code.'],
   inviteFullAccess:['Администратор получит полный доступ к участникам, проектам, документам и модерации.','Әкімші қатысушыларға, жобаларға, құжаттарға және модерацияға толық қол жеткізеді.','An administrator receives full access to participants, projects, documents and moderation.'],

@@ -16,6 +16,9 @@ export interface User {
   expertise?: string;
   evidence_urls?: string[];
   capacity?: number;
+  organization?: string;
+  mentor_commitment?: boolean;
+  mentor_commitment_accepted_at?: string | null;
 }
 export interface Direction {
   id: string;

@@ -5,6 +5,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, has_current_consents, require_active, require_admin
+from app.profile_state import admitted_profile
+from app.project_access import project_is_public
 from app.database import get_db
 from app.models import Application, AuditEvent, Consent, Conversation, ConversationMember, Direction, Document, DocumentVersion, Message, Notification, Participation, ParticipationEvent, Project, ProjectMember, User
 from app.schemas.projects import ApplicationCreate, ApplicationDecision, MessageCreate, ProjectCreate, ProjectReview, ProjectUpdate
@@ -68,7 +70,7 @@ def project_direction(db, direction_id):
 
 
 def ensure_user_enrolled(db, user, role):
-    if user.role != role or user.account_status != "active" or not user.profile_completed:
+    if user.role != role or user.account_status != "active" or not admitted_profile(user):
         raise HTTPException(403, "Участник должен иметь одобренную анкету и подходящую роль")
     if role == "mentor" and not user.intake_open:
         raise HTTPException(409, "Набор участника сейчас закрыт")
@@ -131,15 +133,25 @@ def validate_match(db, project, mentee, mentor):
 
 @router.get("/projects")
 def projects(direction_id: str | None = None, stage: str | None = None, q: str | None = Query(None, max_length=200), limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db)):
-    query = select(Project).join(Direction, Direction.id == Project.direction_id).join(User, User.id == Project.owner_id).where(Project.visibility_status == "published", Direction.active.is_(True), User.account_status == "active")
+    query = select(Project, User).join(Direction, Direction.id == Project.direction_id).join(User, User.id == Project.owner_id).where(Project.visibility_status == "published", Direction.active.is_(True), User.account_status == "active", User.profile_completed.is_(True), User.role.in_(["mentor", "mentee"]))
     if direction_id:
         query = query.where(Project.direction_id == direction_id)
     if stage:
         query = query.where(Project.stage == stage)
     if q:
         query = query.where(or_(Project.title.icontains(q, autoescape=True), Project.problem.icontains(q, autoescape=True)))
-    rows = db.scalars(query.order_by(Project.created_at.desc(), Project.id).limit(limit).offset(offset)).all()
-    return [public_project(db, project) for project in rows]
+    rows = db.execute(query.order_by(Project.created_at.desc(), Project.id).execution_options(yield_per=100))
+    output, eligible = [], 0
+    for project, owner in rows:
+        if not project_is_public(db, project, owner=owner):
+            continue
+        if eligible < offset:
+            eligible += 1
+            continue
+        output.append(public_project(db, project))
+        if len(output) >= limit:
+            break
+    return output
 
 
 @router.get("/projects/mine")
@@ -178,7 +190,7 @@ def project_detail(project_id: str, request: Request, db: Session = Depends(get_
         raise HTTPException(404, "Проект не найден")
     direction = db.get(Direction, project.direction_id)
     owner = db.get(User, project.owner_id)
-    public = project.visibility_status == "published" and direction and direction.active and owner and owner.account_status == "active"
+    public = project_is_public(db, project, owner=owner, direction=direction)
     if not public:
         if not request.cookies.get("dc_session"):
             raise HTTPException(404, "Проект не найден")
@@ -204,7 +216,7 @@ def edit_project(project_id: str, payload: ProjectUpdate, user: User = Depends(r
     from app.transactions import lock_users
     user_id = user.id
     user = lock_users(db, [user_id])[user_id]
-    if user.role not in {"mentor", "mentee"} or user.account_status != "active" or not user.profile_completed or not has_current_consents(db, user):
+    if user.role not in {"mentor", "mentee"} or user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
         raise HTTPException(403, "Для редактирования нужны одобренная анкета и актуальные согласия")
     # Guarded write obtains serialization before checking current membership/capacity.
     changed = db.execute(update(Project).where(Project.id == project_id, Project.owner_id == user.id).values(capacity=Project.capacity).execution_options(synchronize_session=False))
@@ -277,7 +289,7 @@ def review_project(project_id: str, payload: ProjectReview, user: User = Depends
     if project is None:
         raise HTTPException(404, "Проект не найден")
     project_direction(db, project.direction_id)
-    if payload.decision == "published" and (owner.account_status != "active" or not owner.profile_completed or not has_current_consents(db, owner)):
+    if payload.decision == "published" and (owner.account_status != "active" or not admitted_profile(owner) or not has_current_consents(db, owner)):
         raise HTTPException(409, "Перед публикацией автору нужны одобренная анкета и актуальные согласия")
     project.visibility_status = payload.decision
     audit(db, user, "project.reviewed", "project", project.id, {"decision": payload.decision, "reason": payload.reason})
@@ -332,7 +344,7 @@ def decide_application(application_id: str, payload: ApplicationDecision, user: 
     people = lock_users(db, [actor_id, mentee_id])
     user = people[actor_id]
     application = db.get(Application, application_id, populate_existing=True)
-    if user.role != "mentor" or user.account_status != "active" or not user.profile_completed or not has_current_consents(db, user):
+    if user.role != "mentor" or user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
         raise HTTPException(403, "Ментор должен иметь одобренную анкету и актуальные согласия")
     if application is None or application.mentor_id != user.id or application.mentee_id != mentee_id:
         raise HTTPException(404, "Входящая заявка не найдена")

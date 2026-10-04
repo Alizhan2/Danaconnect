@@ -3,7 +3,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 
 from app.config import settings
 
@@ -41,6 +41,7 @@ class ProfileInput(BaseModel):
     role: Literal["mentee", "mentor"] | None = None
     timezone: str = "Asia/Almaty"
     city: str = Field(min_length=1, max_length=120)
+    organization: str = Field(default="", max_length=300)
     phone: str | None = Field(default=None, max_length=40)
     birth_date: date | None = None
     bio: str = Field(min_length=10, max_length=5000)
@@ -49,6 +50,7 @@ class ProfileInput(BaseModel):
     direction_ids: list[str] = Field(min_length=1, max_length=10)
     capacity: int = Field(default=3, ge=0, le=50)
     preferred_locale: Literal["ru", "kk", "en"] | None = None
+    mentor_commitment: StrictBool = False
 
     @field_validator("timezone")
     @classmethod
@@ -59,10 +61,17 @@ class ProfileInput(BaseModel):
             raise ValueError("Укажите часовой пояс IANA")
         return value
 
-    @field_validator("full_name", "city", "bio", "expertise", mode="before")
+    @field_validator("full_name", "city", "bio", "expertise", "organization", "phone", mode="before")
     @classmethod
     def trim(cls, value):
         return value.strip() if isinstance(value, str) else value
+
+    @field_validator("phone")
+    @classmethod
+    def optional_phone(cls, value):
+        if value and any(ord(char) < 32 for char in value):
+            raise ValueError("Укажите телефон без управляющих символов")
+        return value or None
 
     @field_validator("birth_date")
     @classmethod

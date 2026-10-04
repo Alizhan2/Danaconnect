@@ -75,6 +75,7 @@ export function AppShell({
     };
   }, [pathname]);
   const nav = [
+    { href: "/register", label: tr("Регистрация") },
     { href: "/catalog", label: t.mentors },
     { href: "/projects", label: t.projects },
     { href: "/showcase", label: t.showcase },

@@ -6,7 +6,7 @@ aware UTC, so authorization and scheduling comparisons have identical semantics.
 from datetime import date, datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, false, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import TypeDecorator
 
@@ -75,6 +75,7 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(80), default="Asia/Oral")
     preferred_locale: Mapped[str] = mapped_column(String(2), default="ru", server_default="ru")
     city: Mapped[str] = mapped_column(String(120), default="")
+    organization: Mapped[str] = mapped_column(String(300), default="", server_default="")
     phone: Mapped[str | None] = mapped_column(String(40))
     birth_date: Mapped[date | None] = mapped_column(Date)
     bio: Mapped[str] = mapped_column(Text, default="")
@@ -83,6 +84,8 @@ class User(Base):
     direction_ids: Mapped[list] = mapped_column(JSON, default=list)
     capacity: Mapped[int] = mapped_column(Integer, default=3)
     profile_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    mentor_commitment: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    mentor_commitment_accepted_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = timestamp()
 
 

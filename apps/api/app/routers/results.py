@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, has_current_consents, require_active, require_admin
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import (AuditEvent, Booking, Feedback, Notification, Participation,
                         ParticipationEvent, Project, ProjectMember, Result,
@@ -44,7 +45,7 @@ def _commit(db):
 
 
 def _active(db, person):
-    if person.account_status != "active" or (person.role != "admin" and not person.profile_completed):
+    if person.account_status != "active" or (person.role != "admin" and not admitted_profile(person)):
         raise HTTPException(403, "Участник не допущен к работе на платформе")
     if not has_current_consents(db, person):
         raise HTTPException(403, "Подтвердите актуальные обязательные документы")
@@ -315,7 +316,7 @@ def _showcase(db):
             continue
         people = db.scalars(select(User).where(User.id.in_(parties)).order_by(User.id)).all()
         if len(people) != len(parties) or any(
-            person.role not in {"mentee", "mentor"} or person.account_status != "active" or not person.profile_completed
+            person.role not in {"mentee", "mentor"} or person.account_status != "active" or not admitted_profile(person)
             or not has_current_consents(db, person, scopes=("registration", "intake", "showcase")) for person in people):
             continue
         result = results[0]
@@ -340,7 +341,7 @@ def showcase(limit: int = Query(100, ge=1, le=200), offset: int = Query(0, ge=0)
 
 def _analytics(db):
     people = db.scalars(select(User).where(User.account_status == "active", User.profile_completed.is_(True))).all()
-    approved = {person.id for person in people if has_current_consents(db, person)}
+    approved = {person.id for person in people if admitted_profile(person) and has_current_consents(db, person)}
     participations = db.scalars(select(Participation)).all()
     results = db.scalars(select(Result)).all()
     closed_ids = {item.participation_id for item in results}

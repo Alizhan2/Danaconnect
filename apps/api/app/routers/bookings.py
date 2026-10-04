@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.auth import has_current_consents, require_active
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import AuditEvent, Booking, Notification, Participation, Slot, User, utcnow
 from app.schemas.bookings import BookingCreate, SlotCreate
@@ -27,7 +28,7 @@ router = APIRouter(tags=["calendar"])
 def _active(db: Session, user: User, role: str | None = None):
     if role and user.role != role:
         raise HTTPException(403, "Недоступно для вашей роли")
-    if user.account_status != "active" or (user.role != "admin" and not user.profile_completed):
+    if user.account_status != "active" or (user.role != "admin" and not admitted_profile(user)):
         raise HTTPException(403, "Участник не допущен к работе на платформе")
     if not has_current_consents(db, user):
         raise HTTPException(403, "Необходимо принять актуальные обязательные документы")
@@ -122,7 +123,7 @@ def list_slots(mentor_id: str | None = None, from_date: str | None = None,
     if not own and user.role != "admin":
         query = query.where(Slot.status == "available")
     rows = db.execute(query.order_by(Slot.starts_at, Slot.id).offset(offset).limit(limit)).all()
-    return [_slot_view(slot, mentor) for slot, mentor in rows if has_current_consents(db, mentor)]
+    return [_slot_view(slot, mentor) for slot, mentor in rows if admitted_profile(mentor) and has_current_consents(db, mentor)]
 
 
 @router.post("/slots", status_code=201)

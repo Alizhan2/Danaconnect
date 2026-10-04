@@ -1,11 +1,12 @@
 import secrets
 from collections import defaultdict, deque
 from datetime import timedelta
+from typing import Literal
 import hashlib
 from threading import Lock
 from uuid import uuid4
 import base64
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode, urlsplit
 
 import httpx
 import jwt
@@ -23,6 +24,7 @@ from app.models import AuditEvent, AuthChallenge, Consent, Direction, Document, 
 from app.schemas.identity import ConsentInput, DirectionInput, DirectionUpdate, IntakeInput, MFAVerify, ProfileInput, RequestCode, ReviewInput, VerifyCode
 from app.transactions import lock_users
 from app.otp_limits import lock_otp_email
+from app.profile_state import MENTOR_COMMITMENT_VERSION, admitted_profile, profile_complete
 from app.models_delivery import AdminCredential, ExternalIdentity, MFAChallenge, OAuthState, SessionAssurance
 from app.models_admin_invitations import AdminInvitationChallenge
 from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, delivery_ready, encrypt_text, enqueue_email, google_ready, otp_email
@@ -34,7 +36,7 @@ _rate_lock = Lock()
 
 
 def self_user(user):
-    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "account_status": user.account_status, "intake_open": user.intake_open, "timezone": user.timezone, "city": user.city, "phone": user.phone, "birth_date": user.birth_date, "bio": user.bio, "expertise": user.expertise, "evidence_urls": user.evidence_urls or [], "direction_ids": user.direction_ids or [], "capacity": user.capacity, "profile_completed": user.profile_completed, "preferred_locale": getattr(user, "preferred_locale", "ru")}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "account_status": user.account_status, "intake_open": user.intake_open, "timezone": user.timezone, "city": user.city, "organization": user.organization, "phone": user.phone, "birth_date": user.birth_date, "bio": user.bio, "expertise": user.expertise, "evidence_urls": user.evidence_urls or [], "direction_ids": user.direction_ids or [], "capacity": user.capacity, "profile_completed": admitted_profile(user), "mentor_commitment": user.mentor_commitment, "mentor_commitment_accepted_at": user.mentor_commitment_accepted_at, "preferred_locale": getattr(user, "preferred_locale", "ru")}
 
 
 def public_mentor(user):
@@ -47,15 +49,6 @@ def direction_dict(direction):
 
 def audit(db, actor, action, entity_type, entity_id, detail=None):
     db.add(AuditEvent(actor_id=actor.id if actor else None, action=action, entity_type=entity_type, entity_id=entity_id, detail=detail or {}))
-
-
-def profile_complete(user):
-    base = bool(user.full_name.strip() and user.city.strip() and len(user.bio.strip()) >= 10 and user.direction_ids)
-    if user.role == "mentee":
-        return base and user.birth_date is not None
-    if user.role == "mentor":
-        return base and len(user.expertise.strip()) >= 10 and bool(user.evidence_urls)
-    return user.role == "admin"
 
 
 def active_profile_directions(db, user):
@@ -207,12 +200,35 @@ def auth_providers():
     return {"email": delivery_ready() or (settings.auth_debug_code and settings.environment != "production"), "google": google_ready(), "admin_mfa": True}
 
 
+def safe_participant_return(value):
+    """Keep OAuth navigation on the participant app, including encoded inputs."""
+    if not isinstance(value, str) or not value.startswith("/") or len(value) > 2048:
+        return "/dashboard"
+    decoded = value
+    for _ in range(3):
+        decoded = unquote(decoded)
+    if decoded.startswith("//") or any(ord(char) < 32 or char == "\\" for char in decoded):
+        return "/dashboard"
+    try:
+        parsed, checked = urlsplit(value), urlsplit(decoded)
+    except ValueError:
+        return "/dashboard"
+    if parsed.netloc or parsed.scheme or checked.netloc or checked.scheme:
+        return "/dashboard"
+    # Do not carry auth loops, operator URLs, API routes or dot-segment tricks.
+    path = checked.path
+    if path in {"/login", "/register", "/onboarding"} or path.startswith(("/api/", "/admin")) or any(part in {".", ".."} for part in path.split("/")):
+        return "/dashboard"
+    return parsed.geturl()
+
+
 @router.get("/auth/google/start")
-def google_start(response: Response, locale: str = Query(default="ru", pattern=r"^(ru|kk|en)$"), db: Session = Depends(get_db)):
+def google_start(response: Response, locale: str = Query(default="ru", pattern=r"^(ru|kk|en)$"),
+    role: Literal["mentor", "mentee"] | None = None, return_to: str = Query(default="/dashboard", max_length=2048), db: Session = Depends(get_db)):
     if not google_ready():
         raise HTTPException(503, "Вход через Google не настроен")
     state, nonce, browser, verifier = (secrets.token_urlsafe(48) for _ in range(4))
-    db.add(OAuthState(state_hash=secret_hash(state), nonce_hash=secret_hash(nonce), browser_hash=secret_hash(browser), encrypted_verifier=encrypt_text(verifier), locale=locale, expires_at=utcnow() + timedelta(minutes=10)))
+    db.add(OAuthState(state_hash=secret_hash(state), nonce_hash=secret_hash(nonce), browser_hash=secret_hash(browser), encrypted_verifier=encrypt_text(verifier), locale=locale, registration_role=role, return_to=safe_participant_return(return_to), expires_at=utcnow() + timedelta(minutes=10)))
     db.commit()
     response.set_cookie("dc_oauth", browser, max_age=600, httponly=True, secure=settings.environment == "production", samesite="lax", path="/")
     parameters = {"client_id": settings.google_client_id, "redirect_uri": settings.google_redirect_uri, "response_type": "code", "scope": "openid email profile", "state": state, "nonce": nonce, "code_challenge": base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("="), "code_challenge_method": "S256", "prompt": "select_account"}
@@ -255,6 +271,7 @@ def google_callback(request: Request, state: str = Query(max_length=128), code: 
         db.rollback()
         raise HTTPException(400, "Сессия входа через Google уже использована")
     verifier, nonce_hash, locale = decrypt_text(oauth.encrypted_verifier), oauth.nonce_hash, oauth.locale
+    registration_role, return_to = oauth.registration_role, safe_participant_return(oauth.return_to)
     oauth.encrypted_verifier = ""
     db.commit()
     try:
@@ -280,7 +297,14 @@ def google_callback(request: Request, state: str = Query(max_length=128), code: 
         db.flush()
     if not identity:
         db.add(ExternalIdentity(user_id=user.id, provider="google", subject=claims["sub"]))
-    response = RedirectResponse(settings.frontend_url.rstrip("/") + "/dashboard", status_code=303)
+    destination = return_to
+    if user.role == "unchosen" or not admitted_profile(user):
+        parameters = {"returnTo": return_to}
+        hinted_role = user.role if user.role in {"mentor", "mentee"} else registration_role
+        if hinted_role in {"mentor", "mentee"}:
+            parameters["role"] = hinted_role
+        destination = "/onboarding?" + urlencode(parameters)
+    response = RedirectResponse(settings.frontend_url.rstrip("/") + destination, status_code=303)
     response.delete_cookie("dc_oauth", path="/")
     issue_session(db, user, response)
     return response
@@ -324,12 +348,16 @@ def save_profile(payload: ProfileInput, user: User = Depends(get_current_user), 
     active_ids = set(db.scalars(select(Direction.id).where(Direction.id.in_(direction_ids), Direction.active.is_(True))).all())
     if active_ids != set(direction_ids):
         raise HTTPException(422, "Выберите действующие направления")
-    values = payload.model_dump(exclude={"role", "evidence_urls"}, exclude_none=True)
+    values = payload.model_dump(exclude={"role", "evidence_urls", "mentor_commitment"}, exclude_none=True)
     # Optional personal fields must remain clearable.
     values["phone"], values["birth_date"] = payload.phone, payload.birth_date
     values["direction_ids"] = direction_ids
     values["evidence_urls"] = [str(url) for url in payload.evidence_urls]
-    review_fields = {"full_name", "bio", "expertise", "evidence_urls", "direction_ids", "capacity"}
+    values["mentor_commitment"] = role == "mentor" and payload.mentor_commitment
+    accepted_at = user.mentor_commitment_accepted_at
+    newly_accepted = values["mentor_commitment"] and (user.role != "mentor" or not user.mentor_commitment or accepted_at is None)
+    values["mentor_commitment_accepted_at"] = (utcnow() if newly_accepted else accepted_at) if values["mentor_commitment"] else None
+    review_fields = {"full_name", "city", "phone", "birth_date", "organization", "bio", "expertise", "evidence_urls", "direction_ids", "capacity", "mentor_commitment", "mentor_commitment_accepted_at"}
     needs_review = user.role == "unchosen" or any(getattr(user, name) != values[name] for name in review_fields)
     for name, value in values.items():
         setattr(user, name, value)
@@ -340,6 +368,8 @@ def save_profile(payload: ProfileInput, user: User = Depends(get_current_user), 
             user.intake_open = False
     user.profile_completed = profile_complete(user)
     audit(db, user, "profile.updated", "user", user.id)
+    if newly_accepted:
+        audit(db, user, "mentor_commitment.accepted", "user", user.id, {"version": MENTOR_COMMITMENT_VERSION})
     db.commit()
     return self_user(user)
 
@@ -477,7 +507,7 @@ def mentor(user_id: str, db: Session = Depends(get_db)):
 def change_intake(payload: IntakeInput, user: User = Depends(require_active), db: Session = Depends(get_db)):
     user_id = user.id
     user = lock_users(db, [user_id])[user_id]
-    if user.account_status != "active" or not has_current_consents(db, user):
+    if user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
         raise HTTPException(403, "Подтвердите актуальные документы и статус анкеты")
     if user.role != "mentor":
         raise HTTPException(403, "Набором управляет ментор")
@@ -495,8 +525,15 @@ def change_intake(payload: IntakeInput, user: User = Depends(require_active), db
 
 
 @router.get("/admin/registrations")
-def registrations(limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0), admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return [self_user(user) for user in db.scalars(select(User).where(User.account_status == "pending").order_by(User.created_at).limit(limit).offset(offset)).all()]
+def registrations(limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
+    role: Literal["mentor", "mentee"] | None = None, direction_id: str | None = Query(default=None, min_length=1, max_length=36),
+    admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    statement = select(User).where(User.account_status == "pending")
+    if role:
+        statement = statement.where(User.role == role)
+    if direction_id:
+        statement = statement.where(cast(User.direction_ids, String).contains('"' + direction_id + '"', autoescape=True))
+    return [self_user(user) for user in db.scalars(statement.order_by(User.created_at, User.id).limit(limit).offset(offset)).all()]
 
 
 @router.post("/admin/registrations/{user_id}/review")

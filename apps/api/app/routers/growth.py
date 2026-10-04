@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, has_current_consents, requested_locale, require_active, require_admin
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import AuditEvent, Direction, Participation, Result, User, utcnow
 from app.models_growth import GrowthAward, GrowthPrivacy, LearningMaterial, PointEvent
@@ -141,7 +142,7 @@ def preference(request: Request, user: User = Depends(get_current_user), db: Ses
 @router.put("/me/leaderboard-preference")
 def set_preference(payload: LeaderboardPreference, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if payload.visible:
-        if user.role not in {"mentee", "mentor"} or user.account_status != "active" or not user.profile_completed or not has_current_consents(db, user):
+        if user.role not in {"mentee", "mentor"} or user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
             raise HTTPException(403, "Публичный рейтинг доступен после одобрения анкеты и документов")
         if payload.consent_version != LEADERBOARD_VERSION:
             raise HTTPException(409, "Прочитайте актуальные условия рейтинга")
@@ -170,7 +171,7 @@ def leaderboard(request: Request, limit: int = Query(30, ge=1, le=100), db: Sess
     entries = []
     locale = requested_locale(request)
     for privacy, user in candidates:
-        if not has_current_consents(db, user):
+        if not admitted_profile(user) or not has_current_consents(db, user):
             continue
         events = db.scalars(select(PointEvent).where(PointEvent.user_id == user.id)).all()
         # Public reads never publish contacts, account IDs, or private award details.
@@ -195,7 +196,7 @@ def portfolio(request: Request, user: User = Depends(require_active), db: Sessio
 @router.get("/admin/growth/users")
 def eligible_users(user: User = Depends(require_admin), db: Session = Depends(get_db), limit: int = Query(100, ge=1, le=200), offset: int = Query(0, ge=0)):
     rows = db.scalars(select(User).where(User.account_status == "active", User.profile_completed.is_(True), User.role.in_(["mentee", "mentor"])).order_by(User.full_name, User.id).offset(offset).limit(limit)).all()
-    return [{"id": row.id, "full_name": row.full_name, "role": row.role} for row in rows]
+    return [{"id": row.id, "full_name": row.full_name, "role": row.role} for row in rows if admitted_profile(row)]
 
 
 @router.get("/admin/awards")
@@ -215,7 +216,7 @@ def award_sources(user_id: str, user: User = Depends(require_admin), db: Session
 @router.post("/admin/awards", status_code=201)
 def create_award(payload: AwardInput, request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     recipient = db.get(User, payload.user_id)
-    if not recipient or recipient.role not in {"mentee", "mentor"} or recipient.account_status != "active" or not recipient.profile_completed:
+    if not recipient or recipient.role not in {"mentee", "mentor"} or recipient.account_status != "active" or not admitted_profile(recipient):
         raise HTTPException(422, "Награда доступна одобренному участнику")
     if payload.result_id:
         result = db.get(Result, payload.result_id)

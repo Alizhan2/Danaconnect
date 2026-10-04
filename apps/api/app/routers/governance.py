@@ -180,6 +180,8 @@ def change_role(user_id: str, payload: RoleInput, admin: User = Depends(require_
     user.account_status = "draft"
     user.profile_completed = False
     user.intake_open = False
+    user.mentor_commitment = False
+    user.mentor_commitment_accepted_at = None
     db.execute(delete(SessionToken).where(SessionToken.user_id == user_id))
     audit(db, admin, "user.role_changed", "user", user.id, {"previous_role": previous_role, "role": payload.role, "reason": payload.reason.strip()})
     db.commit()

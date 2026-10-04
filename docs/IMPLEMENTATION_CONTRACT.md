@@ -8,7 +8,7 @@
 - Backend imports use `app.*`, launched from apps/api. SQLAlchemy sync Session dependency: `from app.database import get_db`. Models: `from app.models import ...`. Config: `from app.config import settings`. Authorization: `from app.auth import get_current_user, require_active, require_admin`. Routers under app/routers, each exports `router`. Parent wires them in app/main.py.
 - Cookie session `dc_session`, HttpOnly, SameSite=Lax, Secure in production. Browser calls use same-origin `/api/v1` rewritten by Next to API server. Backend mutations check Origin against configured trusted origins. Frontend helper `api<T>(path, options?)` in src/lib/api.ts sends credentials and throws an ApiError with readable message. Paths passed to helper begin `/` and exclude `/api/v1` prefix.
 - `get_current_user` validates session; `require_active` also checks active account, current required consent versions, completed/approved registration. Enrollment state is separate `intake_open`. Only admin can approve registration or change roles. Normal registration permits mentee or mentor.
-- Common User public self response: id, email, full_name, role, account_status, intake_open, timezone, city, direction_ids, profile_completed. Public mentor response excludes email, phone, birth_date, review evidence.
+- Common User private self response: id, email, full_name, role, account_status, intake_open, timezone, city, direction_ids, computed profile_completed, organization, mentor_commitment, mentor_commitment_accepted_at. Public mentor response excludes email, phone, birth_date, organization, commitment and review evidence. Live admission uses app.profile_state.admitted_profile; a legacy stored completion flag does not grant access.
 - Lists return plain JSON arrays, bounded by limit/offset. Errors use `{detail: string}`. UI must show loading, empty, denied and error states. Avoid silently replacing failed live API calls with fixtures.
 
 ## Data model interface
@@ -18,7 +18,7 @@ Owner: data agent. Models export Base plus Direction, User, AuthChallenge, Sessi
 Common fields (owner may add constraints and helper properties):
 
 - Direction: id, slug, name_ru, name_kk, name_en, description_ru, active.
-- User: id, email, full_name, role, account_status, intake_open, timezone, city, phone, birth_date, bio, expertise, evidence_urls (JSON), direction_ids (JSON), capacity, profile_completed, created_at.
+- User: id, email, full_name, role, account_status, intake_open, timezone, city, phone, birth_date, organization (300 chars), bio, expertise, evidence_urls (JSON), direction_ids (JSON), capacity, mentor_commitment (false by default), mentor_commitment_accepted_at (server UTC), profile_completed, created_at.
 - AuthChallenge: id, email, code_hash, expires_at, attempts, consumed_at, created_at. SessionToken: id, user_id, token_hash, expires_at, created_at.
 - Document: id, slug, title, required_roles (JSON), direction_id (nullable), scope (registration/intake/private_project/showcase), active. DocumentVersion: id, document_id, version, content, content_hash, published_at. Consent: id, user_id, document_version_id, accepted_at, method, ip_address, user_agent. UNIQUE(user_id,document_version_id).
 - RegistrationReview: id, user_id, admin_id, decision, reason, created_at.
@@ -37,10 +37,11 @@ Identity owner:
 
 - GET /health: `{status, environment, demo_mode}`.
 - POST /auth/request-code `{email}` -> `{challenge_id, debug_code?}` (debug only explicit development config). POST /auth/verify-code `{challenge_id, code}` -> self user, set session cookie. POST /auth/logout. GET /auth/me.
-- PUT /me/profile `{full_name, role?, timezone, city, phone?, birth_date?, bio, expertise?, evidence_urls?, direction_ids, capacity?}` -> user. Only initially unchosen role may be set; later change admin only.
+- PUT /me/profile `{full_name, role?, timezone, city, phone?, birth_date?, organization?, bio, expertise?, evidence_urls?, direction_ids, capacity?, mentor_commitment?}` -> user. Only initially unchosen role may be set; later change admin only. Mentor completion requires phone, organization, expertise, at least one evidence link and explicit boolean commitment. Mentee requires birth date; organization and phone are optional. Acceptance time is read only and never accepted from the browser. Incomplete drafts cannot be submitted or admitted.
 - POST /me/submit-registration -> user. GET /documents -> current applicable version objects `{id, document_id, title, slug, version, content, scope, required, accepted}`. POST /documents/{version_id}/consent -> consent.
 - GET /directions -> array. GET /mentors -> public array (direction_id?, q?). GET /mentors/{id} -> public mentor. PATCH /me/intake `{intake_open, capacity?}`.
-- GET /admin/registrations -> users under review. POST /admin/registrations/{id}/review `{decision: approved|changes_requested, reason}`. GET/POST/PATCH /admin/directions. GET /notifications and PATCH /notifications/{id}/read.
+- GET /admin/registrations (role?, direction_id?, limit?, offset?) -> users under review with private fields. POST /admin/registrations/{id}/review `{decision: approved|changes_requested, reason}`. GET/POST/PATCH /admin/directions. GET /notifications and PATCH /notifications/{id}/read.
+- Public /register, /register/mentee and /register/mentor show the same form fields as authenticated onboarding, with memory-only unsaved preview values. Email login and Google OAuth carry a bounded role hint; only initially unchosen participants may select that role when saving their profile.
 
 Projects owner:
 

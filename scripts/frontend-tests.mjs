@@ -76,7 +76,7 @@ test('calendar keeps recurring forms mounted during refresh after initial loadin
 });
 
 test('mentor evidence requires valid HTTP(S) links and at most ten',()=>{
-  const validate=sourceFunction('web','app/onboarding/page.tsx','evidenceProblem');
+  const validate=runtime('web').load('lib/registration.ts').evidenceProblem;
   for(const values of [[],['  '],['аавва'],['javascript:alert(1)'],['https://x.test/'+ 'a'.repeat(2083)],Array(11).fill('https://example.test')])assert.ok(validate(values));
   for(const values of [['https://github.com/username'],['  https://example.test/portfolio  ',''],['http://example.test'],Array(10).fill('https://example.test')])assert.equal(validate(values),'');
 });
@@ -134,7 +134,7 @@ test('admin MFA component shows expiry and disables expired confirmation',()=>{
 });
 test('onboarding component blocks unconfigured or unchecked required documents',()=>{
   for(const [configured,checked,expectedDisabled] of [[false,[],true],[true,[],true],[true,['doc-1'],false]]){
-    const user={id:'fixture-user',role:'mentor',account_status:'draft',profile_completed:true,direction_ids:['direction-1'],full_name:'Fixture mentor',timezone:'Asia/Oral',evidence_urls:['https://example.test']};
+    const user={id:'fixture-user',role:'mentor',account_status:'draft',profile_completed:true,direction_ids:['direction-1'],full_name:'Fixture mentor',timezone:'Asia/Oral',city:'Oral',phone:'+77000000000',organization:'Fixture organization',mentor_commitment:true,bio:'Fixture introduction',expertise:'Fixture expertise',capacity:3,evidence_urls:['https://example.test']};
     const data={user,directions:[{id:'direction-1',name_ru:'IT'}],documents:[{id:'doc-1',required:true,accepted:false,title:'Fixture rules',version:1}],notifications:[],requirements:{documents_configured:configured,unaccepted_version_ids:['doc-1'],required_version_ids:['doc-1']}};
     const rt=runtime('web',{states:[user,checked],modules:{
       '@/components/workflows/common':{useAction:()=>({busy:false}),useLoad:()=>({data,loading:false,reload:()=>{}}),safeReturnTo:()=>'/dashboard',statusText:value=>value},
@@ -173,7 +173,7 @@ test('web shell refreshes its user after profile save and removes the listener',
 });
 test('profile save publishes its refresh event only after a successful API update',async()=>{
   for(const fail of [false,true]){
-    const steps=[];const user={id:'fixture-user',role:'mentor',account_status:'draft',profile_completed:true,direction_ids:['direction-1'],full_name:'Fixture mentor',timezone:'Asia/Oral',evidence_urls:['https://example.test']};
+    const steps=[];const user={id:'fixture-user',role:'mentor',account_status:'draft',profile_completed:true,direction_ids:['direction-1'],full_name:'Fixture mentor',timezone:'Asia/Oral',city:'Oral',phone:'+77000000000',organization:'Fixture organization',mentor_commitment:true,bio:'Fixture introduction',expertise:'Fixture expertise',capacity:3,evidence_urls:['https://example.test']};
     const data={user,directions:[{id:'direction-1',name_ru:'IT'}],documents:[],notifications:[],requirements:{documents_configured:false,unaccepted_version_ids:[],required_version_ids:[]}};
     const rt=runtime('web',{states:[user,[]],window:{location:{search:''},dispatchEvent:event=>steps.push(event.type)},modules:{
       '@/components/workflows/common':{useAction:()=>({busy:false,run:async work=>work()}),useLoad:()=>({data,loading:false,reload:async()=>steps.push('reload')}),safeReturnTo:()=>'/dashboard',statusText:value=>value,mutate:async(path,body,method)=>{steps.push(`${method} ${path}`);if(fail)throw new Error('Expected API failure');}},

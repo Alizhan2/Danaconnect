@@ -42,11 +42,11 @@ export default function HomePage() {
             <h1>{t.heroTitle}</h1>
             <p>{t.heroText}</p>
             <div className="hero-actions">
-              <Button href="/catalog" variant="accent">
-                {t.findMentor}
+              <Button href="/register/mentee" variant="accent">
+                {tr("Стать менти")}
                 <ArrowUpRight size={16} />
               </Button>
-              <Button href="/login?role=mentor" variant="secondary">
+              <Button href="/register/mentor" variant="secondary">
                 {t.becomeMentor}
               </Button>
             </div>
@@ -196,7 +196,7 @@ export default function HomePage() {
             <h2>{t.joinTitle}</h2>
             <p>{t.joinText}</p>
           </div>
-          <Button href="/login?role=mentor" variant="accent">
+          <Button href="/register/mentor" variant="accent">
             {t.becomeMentor}
             <ArrowRight size={16} />
           </Button>

@@ -14,6 +14,7 @@ from app.config import settings
 from app.database import get_db
 from app.models import Consent, Document, DocumentVersion, SessionToken, User
 from app.models_delivery import AdminCredential, SessionAssurance
+from app.profile_state import admitted_profile
 
 
 def utcnow():
@@ -124,7 +125,7 @@ def has_current_consents(db: Session, user: User, scopes=("registration", "intak
 
 
 def require_active(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
-    if user.account_status != "active" or (user.role != "admin" and not user.profile_completed):
+    if user.account_status != "active" or (user.role != "admin" and not admitted_profile(user)):
         raise HTTPException(403, "Заполните анкету и дождитесь её одобрения")
     if user.role != "admin" and not has_current_consents(db, user):
         raise HTTPException(403, "Подтвердите актуальные версии обязательных документов")

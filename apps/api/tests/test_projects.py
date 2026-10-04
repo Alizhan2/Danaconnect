@@ -1,6 +1,6 @@
 """Focused domain regression checks on an isolated database, including races."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
@@ -32,7 +32,7 @@ def project_api(tmp_path):
         db.flush()
         identifiers["direction"] = direction.id
         for key, role in (("mentor", "mentor"), ("mentor2", "mentor"), ("mentee", "mentee"), ("mentee2", "mentee"), ("stranger", "mentee"), ("admin", "admin")):
-            user = User(id=str(uuid4()), email=f"{key}@example.test", full_name=key, role=role, account_status="active", profile_completed=True, intake_open=True, capacity=1, direction_ids=[direction.id])
+            user = User(id=str(uuid4()), email=f"{key}@example.test", full_name=key, role=role, account_status="active", profile_completed=True, intake_open=True, capacity=1, direction_ids=[direction.id], city="Synthetic city", birth_date=date(2000, 1, 1), bio="Synthetic project biography", expertise="Synthetic mentoring expertise", evidence_urls=["https://example.test/synthetic"], organization="Synthetic workplace", phone="+7 700 000 00 00", mentor_commitment=role == "mentor", mentor_commitment_accepted_at=utcnow() if role == "mentor" else None)
             db.add(user)
             identifiers[key] = user.id
         db.flush()

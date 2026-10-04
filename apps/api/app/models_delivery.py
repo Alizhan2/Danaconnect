@@ -64,6 +64,8 @@ class OAuthState(Base):
     browser_hash: Mapped[str] = mapped_column(String(128))
     encrypted_verifier: Mapped[str] = mapped_column(Text)
     locale: Mapped[str] = mapped_column(String(2), default="ru")
+    registration_role: Mapped[str | None] = mapped_column(String(10))
+    return_to: Mapped[str] = mapped_column(String(2048), default="/dashboard", server_default="/dashboard")
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
     consumed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = timestamp()

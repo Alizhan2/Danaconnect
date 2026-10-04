@@ -200,6 +200,8 @@ class Pilot:
                 user = User(email=key + "@synthetic-load.example.test", full_name="Synthetic " + key,
                             role=role, account_status="active", profile_completed=True,
                             intake_open=role == "mentor", capacity=capacity, timezone="UTC",
+                            city="Synthetic city", organization="Synthetic workplace", phone="+7 700 000 00 00",
+                            mentor_commitment=role == "mentor", mentor_commitment_accepted_at=datetime.now(timezone.utc) if role == "mentor" else None,
                             birth_date=date(2000, 1, 1), bio="Synthetic mentoring pilot fixture",
                             expertise="Python experience", direction_ids=[direction.id],
                             evidence_urls=["https://example.test/synthetic"])

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, has_current_consents, require_active, require_admin, secret_hash
 from app.config import settings
+from app.profile_state import admitted_profile
 from app.database import get_db
 from app.models import AuditEvent, Direction, Participation, User, utcnow
 from app.models_ai import AIPreference, AIProposal, AIUsageCounter
@@ -87,7 +88,7 @@ def recommendations(payload: RecommendationInput, user: User = Depends(require_a
     candidates = []
     for person in db.scalars(statement).all():
         occupied = db.scalar(select(func.count(Participation.id)).where(Participation.mentor_id == person.id, Participation.status.in_(["active", "paused"])))
-        if occupied >= person.capacity or not has_current_consents(db, person):
+        if occupied >= person.capacity or not admitted_profile(person) or not has_current_consents(db, person):
             continue
         anonymous = profile_context(db, person)
         candidates.append({"candidate_id": person.id, "expertise": anonymous["expertise"][:600], "bio": anonymous["bio"][:400]})
@@ -108,7 +109,7 @@ def recommendations(payload: RecommendationInput, user: User = Depends(require_a
     current = []
     for explanation in response["proposal"]["recommendations"]:
         person = db.get(User, explanation["candidate_id"], populate_existing=True)
-        if person and person.role == "mentor" and person.account_status == "active" and person.profile_completed and person.intake_open and has_current_consents(db, person):
+        if person and person.role == "mentor" and person.account_status == "active" and admitted_profile(person) and person.intake_open and has_current_consents(db, person):
             occupied = db.scalar(select(func.count(Participation.id)).where(Participation.mentor_id == person.id, Participation.status.in_(["active", "paused"])))
             if occupied < person.capacity and direction.id in (person.direction_ids or []):
                 current.append({**explanation, "full_name": person.full_name})

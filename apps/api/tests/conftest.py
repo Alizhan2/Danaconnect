@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 from app.database import get_db
 from app.main import app
-from app.models import Base, Consent, Direction, Document, DocumentVersion, User
+from app.models import Base, Consent, Direction, Document, DocumentVersion, User, utcnow
 from app.routers.identity import _ip_requests
 
 
@@ -45,7 +45,7 @@ class IntegratedAPI:
         return self.client(who).request(method, "/api/v1" + path, headers={"origin": self.origin}, **kwargs)
 
     def profile(self, role="mentee", **changes):
-        payload = {"full_name": "Sample Person", "role": role, "timezone": "Asia/Oral", "city": "Oral", "birth_date": "2000-01-01", "bio": "A meaningful sample biography", "expertise": "Python mentoring experience" if role == "mentor" else "", "evidence_urls": ["https://example.test/evidence"] if role == "mentor" else [], "direction_ids": [self.ids["direction"]], "capacity": 3}
+        payload = {"full_name": "Sample Person", "role": role, "timezone": "Asia/Oral", "city": "Oral", "organization": "Synthetic workplace" if role == "mentor" else "", "phone": "+7 700 000 00 00" if role == "mentor" else None, "mentor_commitment": role == "mentor", "birth_date": "2000-01-01", "bio": "A meaningful sample biography", "expertise": "Python mentoring experience" if role == "mentor" else "", "evidence_urls": ["https://example.test/evidence"] if role == "mentor" else [], "direction_ids": [self.ids["direction"]], "capacity": 3}
         payload.update(changes)
         return payload
 
@@ -73,7 +73,7 @@ def integrated_api(tmp_path, monkeypatch):
         db.flush()
         ids["direction"] = direction.id
         for key, role in (("admin", "admin"), ("mentor", "mentor"), ("mentee", "mentee"), ("stranger", "mentee")):
-            user = User(email=f"{key}@example.test", full_name=f"Sample {key}", role=role, account_status="active", profile_completed=True, intake_open=role == "mentor", direction_ids=[direction.id], capacity=3, city="Oral", birth_date=date(2000, 1, 1), bio="A meaningful sample biography", expertise="Python mentoring experience", evidence_urls=["https://example.test/private-evidence"], phone="PRIVATE-PHONE")
+            user = User(email=f"{key}@example.test", full_name=f"Sample {key}", role=role, account_status="active", profile_completed=True, intake_open=role == "mentor", direction_ids=[direction.id], capacity=3, city="Oral", birth_date=date(2000, 1, 1), bio="A meaningful sample biography", expertise="Python mentoring experience", evidence_urls=["https://example.test/private-evidence"], phone="PRIVATE-PHONE", organization="PRIVATE-ORGANIZATION", mentor_commitment=role == "mentor", mentor_commitment_accepted_at=utcnow() if role == "mentor" else None)
             db.add(user)
             db.flush()
             ids[key] = user.id
