@@ -1,0 +1,59 @@
+{
+  "observed_at_utc": "2026-10-04T14:46:38.715796+00:00",
+  "origin": "https://danaconnect.vercel.app",
+  "scope": "Anonymous GET only; no login, emails or personal-data changes",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "passed": true,
+      "logo_reference_present": true
+    },
+    {
+      "path": "/register",
+      "status": 200,
+      "passed": true,
+      "logo_reference_present": true
+    },
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "passed": true,
+      "render_mode": "Client-rendered login under Suspense; logo verified separately in browser"
+    },
+    {
+      "path": "/admin/registrations",
+      "status": 200,
+      "passed": true,
+      "logo_reference_present": true
+    },
+    {
+      "path": "/brand/danaconnect-logo.jpg",
+      "status": 200,
+      "passed": true,
+      "content_type": "image/jpeg",
+      "bytes": 13937,
+      "sha256": "3c6818dce3eb747df4da4d1e067bcbf84bc68aca34033fb00b86e90062b8a27a",
+      "source_matches": true
+    },
+    {
+      "path": "/admin/brand/danaconnect-logo.jpg",
+      "status": 200,
+      "passed": true,
+      "content_type": "image/jpeg",
+      "bytes": 13937,
+      "sha256": "3c6818dce3eb747df4da4d1e067bcbf84bc68aca34033fb00b86e90062b8a27a",
+      "source_matches": true
+    },
+    {
+      "path": "/api/v1/health",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "/api/v1/ready",
+      "status": 200,
+      "passed": true
+    }
+  ]
+}
