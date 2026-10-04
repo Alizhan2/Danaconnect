@@ -226,9 +226,20 @@ def test_fresh_role_checks_and_standalone_admin_verification(results_harness):
     with factory() as db:
         db.get(User, "mentee").role = "mentor"
         db.commit()
+    # A direct synthetic role change has no mentor affirmation: live admission
+    # denies it before the participation's independent role/membership guard.
+    assert close(client).status_code == 403
+    with factory() as db:
+        person = db.get(User, "mentee")
+        person.mentor_commitment = True
+        person.mentor_commitment_accepted_at = utcnow()
+        db.commit()
     assert close(client).status_code == 404
     with factory() as db:
-        db.get(User, "mentee").role = "mentee"
+        person = db.get(User, "mentee")
+        person.role = "mentee"
+        person.mentor_commitment = False
+        person.mentor_commitment_accepted_at = None
         db.get(Participation, "participation").mentor_id = None
         db.commit()
     result = close(client).json()
