@@ -74,7 +74,7 @@ function invitationScreen(){
   const modules={react,'react/jsx-runtime':{jsx,jsxs:jsx},'next/link':{default:'link'},'next/navigation':{useRouter:()=>({replace:href=>navigation.push(href),refresh:()=>navigation.push('refresh')})},'lucide-react':{ShieldCheck:'shield'},
     '@/lib/api':{ApiError,mutate:async(path,body)=>{calls.push({path,body});if(reply instanceof Error)throw reply;return typeof reply==='function'?reply(path,body):reply;}},
     '@/lib/admin-invitations':{consumeInvitationFragment,localQrImage,secondsRemaining:deadline=>secondsRemaining(deadline,clock)},
-    '@/lib/i18n':{useLocale:()=>({t:key=>key})},'./common':{ActionNotice:'notice',LocalePicker:'locale',useAction:()=>action,webUrl:'http://fixture.local'},'./ui':{Button:'button',Field:'field'},
+    '@/lib/i18n':{useLocale:()=>({t:key=>key})},'@/components/brand-logo':{BrandLogo:'brand-logo'},'./common':{ActionNotice:'notice',LocalePicker:'locale',useAction:()=>action,webUrl:'http://fixture.local'},'./ui':{Button:'button',Field:'field'},
   };
   class FixtureDate extends Date{static now(){return clock;}}
   const module={exports:{}};
