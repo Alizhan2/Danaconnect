@@ -1,0 +1,26 @@
+{
+  "observed_at_utc": "2026-10-04T15:42:25.843328+00:00",
+  "read_only": true,
+  "scope": "SMTP acceptance measurements only; no codes or recipient identities",
+  "browser_test_started_at_utc": "2026-10-04T15:41:46.899Z",
+  "worker_status": "success",
+  "worker_age_seconds": 19.54,
+  "control_request": {
+    "status": "sent",
+    "created_at_utc": "2026-10-04T15:41:48.513792+00:00",
+    "sent_at_utc": "2026-10-04T15:41:52.598294+00:00",
+    "queue_to_provider_seconds": 4.08,
+    "attempts": 1,
+    "error_present": false
+  },
+  "previous_request": {
+    "status": "sent",
+    "created_at_utc": "2026-10-04T15:28:13.789737+00:00",
+    "sent_at_utc": "2026-10-04T15:30:08.165770+00:00",
+    "queue_to_provider_seconds": 114.38,
+    "attempts": 1,
+    "error_present": false
+  },
+  "deployment_id": "dpl_8UcYu4howzVtffDDLPprgMGYZtvM",
+  "product_commit": "e1ce8ecd94ed83b66acadbaba468266db83078d6"
+}
