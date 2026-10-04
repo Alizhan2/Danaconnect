@@ -1,0 +1,9 @@
+{
+  "read_only": true,
+  "observed_at_utc": "2026-10-04T09:12:26.505907+00:00",
+  "status": "success",
+  "finished_at_utc": "2026-10-04T09:12:05.953685+00:00",
+  "age_seconds": 20.552222,
+  "invitation_maintenance_observed": true,
+  "migration_revision": "6b12d23cc9f1"
+}

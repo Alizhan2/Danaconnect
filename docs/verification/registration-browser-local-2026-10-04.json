@@ -1,0 +1,30 @@
+{
+  "recorded_at_utc": "2026-10-04T09:03:26Z",
+  "environment": "Isolated local SQLite API on 8004, web on 3300, admin on 3301",
+  "source_commit": "e670253bf937206416a9445fd01a39e0a65d109d",
+  "method": "Browser accessibility state and actual clicks/inputs through CUA",
+  "synthetic_only": true,
+  "email_provider": "none",
+  "external_emails_sent": 0,
+  "production_accounts_changed": false,
+  "legal_documents_approved": false,
+  "mentor_flow": [
+    "Public preview displayed mentor fields and unchecked commitment",
+    "Email registration CTA preserved mentor role hint",
+    "Synthetic debug OTP led to mentor onboarding",
+    "Name, phone, city, organization, bio, expertise, evidence URL, direction and commitment entered",
+    "Profile save succeeded and locked chosen mentor role",
+    "Three explicitly educational mandatory documents opened and individually accepted",
+    "Submission succeeded and displayed pending moderation"
+  ],
+  "mentee_preview": [
+    "Birth date, optional phone, optional organization and motivation displayed",
+    "Mentor expertise and commitment absent"
+  ],
+  "limitations": [
+    "Screenshot capture failed; no pixel or responsive layout acceptance claimed",
+    "Admin moderation browser roundtrip not repeated in this isolated run; covered by API tests",
+    "No live Google OAuth or real participant consent exercised",
+    "New local test processes stopped and listening ports verified closed"
+  ]
+}

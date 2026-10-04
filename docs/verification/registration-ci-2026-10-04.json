@@ -1,0 +1,14 @@
+{
+  "source_commit": "967157ad0f84e7390e0634e058f029da94775da2",
+  "run_id": 37190885988,
+  "url": "https://github.com/Alizhan2/Danaconnect/actions/runs/37190885988",
+  "conclusion": "success",
+  "jobs": {
+    "api": {"passed": 352, "failed": 0, "seconds": 54.25, "existing_deprecation_warnings": 10},
+    "web": {"passed": 80, "typecheck": "success", "build": "success", "suites": {"frontend": 23, "date_format": 16, "download": 15, "mobile_navigation": 4, "registration": 22}},
+    "admin": {"passed": 25, "typecheck": "success", "build": "success", "suites": {"invitation": 15, "registration": 10}},
+    "postgres_concurrency": {"conclusion": "success", "calendar_http_requests": 280, "calendar_checks": 37, "invitation_http_requests": 120, "invitation_checks": 25}
+  },
+  "scope": "Isolated synthetic databases; no real email, production accounts or legal acceptance",
+  "initial_run": {"id": 37190533269, "api_passed": 351, "api_failed": 1, "cause": "Test changed synthetic mentee role to mentor without new affirmation; fixture corrected with explicit 403 check before original 404 membership guard"}
+}

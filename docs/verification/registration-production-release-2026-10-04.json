@@ -1,0 +1,63 @@
+{
+  "source_commit": "967157ad0f84e7390e0634e058f029da94775da2",
+  "deployment_id": "dpl_2rTUa6bUtmuYrrzYVfdCiYJVQyMN",
+  "ready_state": "READY",
+  "target": "production",
+  "origin": "https://danaconnect.vercel.app",
+  "ready_confirmed_at_utc": "2026-10-04T09:11:01Z",
+  "migration": {
+    "before": "52d790adb0ae",
+    "after": "6b12d23cc9f1",
+    "additive_columns": 5,
+    "seed_performed": false,
+    "existing_approval_states_changed_by_migration": false,
+    "existing_mentor_affirmations_fabricated": false,
+    "backup_summary": "registration-backup-2026-10-04.json"
+  },
+  "http_checks": {
+    "total": 64,
+    "failed": 0,
+    "report": "registration-production-http-2026-10-04.json"
+  },
+  "public_browser_observations": {
+    "method": "CUA accessibility state, no authenticated form submission",
+    "mentor_route": "/register/mentor",
+    "mentee_route": "/register/mentee",
+    "mentor_commitment_initially_unchecked": true,
+    "mentor_organization_phone_expertise_capacity_visible": true,
+    "mentee_birth_optional_phone_organization_motivation_visible": true,
+    "mentor_directions_loaded": [
+      "IT",
+      "Образование",
+      "Психология"
+    ],
+    "email_cta_role_hints": [
+      "mentor",
+      "mentee"
+    ],
+    "preview_no_persistence_notice_visible": true,
+    "legal_intake_guard_notice_visible": true,
+    "mentee_directions_loaded": [
+      "IT",
+      "Образование",
+      "Психология"
+    ],
+    "mentee_desktop_viewport_screenshot_observed": true
+  },
+  "limitations": [
+    "Registration draft save is available; actual submission requires approved published mandatory documents",
+    "No new real emails, production applications or participant consents created by verification",
+    "Google OAuth Testing remains; live Google acceptance not repeated",
+    "Local screenshot capture failed; production mentee desktop viewport observed, no full visual/mobile acceptance of new pages claimed",
+    "Encrypted backup is local; fresh restore and offsite recovery of this archive not claimed"
+  ],
+  "worker_after_publish": {
+    "read_only": true,
+    "observed_at_utc": "2026-10-04T09:12:26.505907+00:00",
+    "status": "success",
+    "finished_at_utc": "2026-10-04T09:12:05.953685+00:00",
+    "age_seconds": 20.552222,
+    "invitation_maintenance_observed": true,
+    "migration_revision": "6b12d23cc9f1"
+  }
+}
