@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import {BrandLogo} from '@/components/brand-logo';
 import {useRouter} from 'next/navigation';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {ShieldCheck} from 'lucide-react';
@@ -72,7 +73,7 @@ export function AcceptAdminInvitation(){
     });
   }
   const qr=enrollment&&!qrFailed?localQrImage(enrollment.qr_data_url):undefined;
-  return <div className="auth-screen"><aside className="auth-brand"><Link href="/" className="brand">DanaConnect<span>{t('administration')}</span></Link><div><ShieldCheck size={52} strokeWidth={1}/><h1>{t('inviteWelcome')}</h1><p>{t('inviteWelcomeNote')}</p></div><p>DanaConnect · {t('security')}</p></aside><div className="auth-body"><div className="row"><LocalePicker/></div><div className="auth-card">
+  return <div className="auth-screen"><aside className="auth-brand"><Link href="/" className="brand"><BrandLogo preload/><span>{t('administration')}</span></Link><div><ShieldCheck size={52} strokeWidth={1}/><h1>{t('inviteWelcome')}</h1><p>{t('inviteWelcomeNote')}</p></div><p>DanaConnect · {t('security')}</p></aside><div className="auth-body"><div className="row"><Link href="/" className="auth-mobile-brand" aria-label="DanaConnect"><BrandLogo preload/></Link><LocalePicker/></div><div className="auth-card">
     <p className="eyebrow">DANACONNECT · ADMIN</p><h1>{enrollment?t('mfaSetup'):t('inviteWelcome')}</h1><p>{t('inviteWelcomeNote')}</p>
     <ol className="invite-steps" aria-label={t('inviteWelcome')}><li aria-current={!enrollment?'step':undefined}>{t('inviteEmailStep')}</li><li aria-current={enrollment?'step':undefined}>{t('inviteQrStep')}</li></ol>
     <ActionNotice action={{...action,success:false}}/>

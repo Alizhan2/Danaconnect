@@ -26,6 +26,7 @@ import { usePlatformStatus } from "./platform-status";
 import { statusText } from "./workflows/common";
 import { NotificationBell } from "./notification-center";
 import { mobileNavigation } from "@/lib/navigation";
+import { BrandLogo } from "./brand-logo";
 export function AppShell({
   children,
   title,
@@ -126,7 +127,7 @@ export function AppShell({
       <header className="header">
         <div className="header-inner">
           <Link className="wordmark" href="/" aria-label={tr("Главная")}>
-            DanaConnect<span>{tr("Менторство и развитие")}</span>
+            <BrandLogo preload /><span>{tr("Менторство и развитие")}</span>
           </Link>
           <nav className="desktop-nav" aria-label={tr("Основная навигация")}>
             {nav.map((item) => (
@@ -243,7 +244,7 @@ export function AppShell({
         <div className="container footer-inner">
           <div>
             <Link href="/" className="wordmark">
-              DanaConnect<span>{t.footer}</span>
+              <BrandLogo /><span>{t.footer}</span>
             </Link>
           </div>
           <div>

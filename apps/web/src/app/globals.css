@@ -14,3 +14,11 @@
   .mobile-nav a[aria-current="page"]{font-weight:700;color:var(--blue)}
   .mobile-menu-button{min-width:44px;min-height:44px}
 }
+
+/* The supplied square artwork is displayed in a wide viewport; source bytes remain unchanged. */
+.wordmark{flex-shrink:0}
+.brand-logo{display:block;width:190px;height:54px;max-width:100%;object-fit:cover;object-position:50% 44%;background:#fff}
+.wordmark>span{margin-top:3px}
+.footer .brand-logo{width:190px;height:54px}
+@media(min-width:761px) and (max-width:1000px){.wordmark .brand-logo{width:150px;height:44px}.desktop-nav{gap:12px;flex-wrap:wrap;justify-content:center}.header-inner{gap:14px}}
+@media(max-width:760px){.wordmark .brand-logo{width:170px;height:50px}.header-inner{gap:12px}.wordmark>span{font-size:8px;letter-spacing:.1em}}
