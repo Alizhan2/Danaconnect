@@ -2,6 +2,7 @@
 import base64
 from datetime import timedelta
 import io
+from math import ceil
 import secrets
 from typing import Literal
 from urllib.parse import quote, urlencode
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.auth import aware, generate_totp_secret, matching_totp_step, require_admin, secret_hash, utcnow
 from app.config import settings
 from app.database import get_db
-from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, encrypt_text, enqueue_email, otp_email
+from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, dispatch_email_now, encrypt_text, enqueue_email, otp_email
 from app.models import AuthChallenge, SessionToken, User
 from app.models_admin_invitations import AdminInvitation, AdminInvitationChallenge
 from app.models_delivery import AdminCredential, EmailOutbox, SessionAssurance
@@ -262,15 +263,18 @@ def request_invitation_code(payload: InvitationToken, request: Request, db: Sess
     try:
         if not debug:
             subject, text = otp_email(code, invitation.locale)
-            enqueue_email(db, invitation.email, subject, text, dedup_key="admin-invitation-otp:" + identifier,
+            mail = enqueue_email(db, invitation.email, subject, text, dedup_key="admin-invitation-otp:" + identifier,
                 locale=invitation.locale, expires_at=expires_at)
         db.commit()
     except DeliveryUnavailable:
         db.rollback()
         raise HTTPException(503, "Сервис отправки email не настроен") from None
-    result = {"challenge_id": identifier, "delivery_status": "development" if debug else "queued",
+    delivery_status = "development" if debug else dispatch_email_now(db, mail.id)
+    if delivery_status == "failed":
+        raise HTTPException(503, "Не удалось отправить код. Проверьте адрес почты и повторите позже")
+    result = {"challenge_id": identifier, "delivery_status": delivery_status,
               "email": invitation.email, "full_name": invitation.full_name,
-              "expires_in": max(1, int((expires_at - now).total_seconds()))}
+              "expires_in": max(1, ceil((expires_at - utcnow()).total_seconds()))}
     if debug:
         result["debug_code"] = code
     return result

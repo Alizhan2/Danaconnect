@@ -1,6 +1,6 @@
 """Encrypted transactional email outbox. SMTP delivery is at least once.
 
-Provider calls happen only in the explicit worker, never in database transactions.
+Provider calls happen only after commits, never in database transactions.
 Resend receives a stable idempotency key; SMTP receives a stable Message-ID but
 cannot promise provider-side deduplication after a send/acknowledgement crash.
 """
@@ -12,6 +12,7 @@ import smtplib
 import ssl
 from datetime import timedelta
 from email.message import EmailMessage
+from time import perf_counter
 from uuid import uuid4
 
 import httpx
@@ -19,6 +20,7 @@ from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
 from app.database import SessionLocal
@@ -167,7 +169,7 @@ def send_email(payload: dict, dedup_key: str) -> str:
     return str(message["Message-ID"])
 
 
-def process_outbox(session_factory=SessionLocal, *, limit: int = 20, sender=None) -> dict:
+def process_outbox(session_factory=SessionLocal, *, limit: int = 20, sender=None, outbox_id: str | None = None) -> dict:
     """Claim with compare-and-set leases, send outside transactions, bounded retry."""
     require_delivery()
     sender = sender or send_email
@@ -175,6 +177,9 @@ def process_outbox(session_factory=SessionLocal, *, limit: int = 20, sender=None
     for _ in range(max(0, min(limit, 100))):
         now, lease = utcnow(), str(uuid4())
         claimable = or_(and_(EmailOutbox.status == "pending", EmailOutbox.next_attempt_at <= now), and_(EmailOutbox.status == "leased", EmailOutbox.lease_until <= now))
+        if outbox_id is not None:
+            # An interactive OTP request must never dispatch unrelated mail.
+            claimable = and_(claimable, EmailOutbox.id == outbox_id)
         with session_factory() as db:
             db.execute(update(EmailOutbox).where(claimable, EmailOutbox.attempts >= settings.outbox_max_attempts).values(status="failed", encrypted_payload="", lease_token=None, lease_until=None, last_error_code="attempts_exhausted"))
             candidate = db.scalar(select(EmailOutbox).where(claimable, EmailOutbox.attempts < settings.outbox_max_attempts).order_by(EmailOutbox.next_attempt_at, EmailOutbox.id).limit(1))
@@ -234,6 +239,32 @@ def process_outbox(session_factory=SessionLocal, *, limit: int = 20, sender=None
             if finished.rowcount == 1:
                 result[counter] += 1
     return result
+
+
+def dispatch_email_now(db, outbox_id: str) -> str:
+    """Attempt one committed OTP immediately, with the worker's leases/retries.
+
+    Await the bounded provider call before responding: no detached serverless
+    thread can lose a message after the HTTP response. A transient failure or
+    active worker lease remains queued for the existing recovery schedule.
+    """
+    if db.in_transaction():
+        raise ValueError("Immediate delivery requires a committed transaction")
+    started = perf_counter()
+    outcome = "queued"
+    factory = sessionmaker(bind=db.get_bind(), expire_on_commit=False)
+    try:
+        process_outbox(factory, limit=1, outbox_id=outbox_id)
+        with factory() as check:
+            status = check.scalar(select(EmailOutbox.status).where(EmailOutbox.id == outbox_id))
+        if status in {"sent", "failed"}:
+            outcome = status
+    except Exception:
+        # Keep the durable message for recovery; never log secrets or bodies.
+        logging.getLogger("danaconnect.mail").warning("otp_immediate_attempt_unavailable")
+    logging.getLogger("danaconnect.mail").info(
+        "otp_delivery outcome=%s elapsed_ms=%d", outcome, int((perf_counter() - started) * 1000))
+    return outcome
 
 
 def otp_email(code: str, locale: str) -> tuple[str, str]:

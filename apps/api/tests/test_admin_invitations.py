@@ -402,7 +402,8 @@ def test_wrong_token_bad_origin_and_validation_never_echo_secret(invitation_api)
     assert malformed.status_code == 422 and "private-input" not in malformed.text and token not in malformed.text
 
 
-def test_production_otp_is_queued_and_debug_code_never_returned(invitation_api, monkeypatch):
+@pytest.mark.parametrize("transient_failure", [False, True])
+def test_production_otp_immediate_delivery_and_safe_fallback(invitation_api, monkeypatch, transient_failure):
     api = invitation_api
     _, token = create(api, email="new-admin@gmail.com")
     monkeypatch.setattr(settings, "environment", "production")
@@ -411,12 +412,26 @@ def test_production_otp_is_queued_and_debug_code_never_returned(invitation_api, 
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.test")
     monkeypatch.setattr(settings, "smtp_starttls", True)
     monkeypatch.setattr(settings, "outbox_encryption_key", __import__("cryptography.fernet", fromlist=["Fernet"]).Fernet.generate_key().decode())
+    from app import delivery
+    messages = []
+    def sender(payload, key):
+        assert key.startswith("admin-invitation-otp:")
+        with api.factory() as check:
+            assert check.get(AdminInvitationChallenge, key.removeprefix("admin-invitation-otp:")) is not None
+        messages.append(payload)
+        if transient_failure:
+            raise delivery.DeliveryFailure("smtp_connection")
+        return "synthetic-receipt"
+    monkeypatch.setattr(delivery, "send_email", sender)
     requested = api.call("POST", "/auth/admin-invitations/request-code", who="recipient", json={"token": token})
-    assert requested.status_code == 200 and requested.json()["delivery_status"] == "queued"
+    assert requested.status_code == 200 and requested.json()["delivery_status"] == ("queued" if transient_failure else "sent")
     assert "debug_code" not in requested.json()
+    assert len(messages) == 1
     with api.factory() as db:
         otp_mail = db.scalar(select(EmailOutbox).where(EmailOutbox.dedup_key == "admin-invitation-otp:" + requested.json()["challenge_id"]))
-        assert otp_mail.status == "pending" and otp_mail.encrypted_payload
+        assert otp_mail.status == ("pending" if transient_failure else "sent") and otp_mail.attempts == 1
+        assert bool(otp_mail.encrypted_payload) == transient_failure
+        assert db.scalar(select(EmailOutbox).where(EmailOutbox.dedup_key.like("admin-invitation:%"))).status == "pending"
 
 
 def test_parallel_create_yields_one_pending_invitation(invitation_api):

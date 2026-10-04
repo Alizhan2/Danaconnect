@@ -87,9 +87,19 @@ function invitationScreen(){
   const fixture={calls,replaced,navigation,action,ApiError,render,nodes:()=>nodes(tree),reply:value=>{reply=value;},async submit(){await find('form').props.onSubmit({preventDefault(){}});render();},input(value){find('input').props.onChange({target:{value}});render();},advance(ms){clock+=ms;for(const callback of Array.from(timers.values()))callback();render();}};
   render();return fixture;
 }
-const challenge={challenge_id:'fixture-email-proof',delivery_status:'pending',email:'admin@example.test',full_name:'Fixture Administrator',expires_in:300};
+const challenge={challenge_id:'fixture-email-proof',delivery_status:'queued',email:'admin@example.test',full_name:'Fixture Administrator',expires_in:300};
 const enrollment={enrollment_token:'fixture-enrollment-token',totp_uri:'otpauth://totp/fixture',qr_data_url:'data:image/svg+xml;base64,PHN2Zy8+',manual_entry_key:'FIXTURE_MANUAL_SECRET',expires_in:300,email:challenge.email,full_name:challenge.full_name};
 async function setupQr(fixture){fixture.reply(challenge);await fixture.submit();fixture.input('123456');fixture.reply(enrollment);await fixture.submit();}
+
+test('email proof distinguishes immediate SMTP acceptance from queued recovery',async()=>{
+  for(const status of ['sent','queued']){
+    const fixture=invitationScreen();fixture.reply({...challenge,delivery_status:status});await fixture.submit();
+    const content=JSON.stringify(fixture.nodes());
+    assert.ok(content.includes(status==='sent'?'codeSent':'inviteCodeQueued'));
+    assert.ok(!content.includes(status==='sent'?'inviteCodeQueued':'codeSent'));
+    assert.equal(fixture.nodes().filter(node=>node.type==='img').length,0);
+  }
+});
 
 test('QR stays hidden until email proof and the fragment is removed before requests',async()=>{
   const fixture=invitationScreen();assert.deepEqual(fixture.replaced,['/admin/accept-invite']);assert.equal(fixture.nodes().filter(node=>node.type==='img').length,0);

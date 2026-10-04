@@ -25,9 +25,9 @@ from app.schemas.identity import ConsentInput, DirectionInput, DirectionUpdate, 
 from app.transactions import lock_users
 from app.otp_limits import lock_otp_email
 from app.profile_state import MENTOR_COMMITMENT_VERSION, admitted_profile, profile_complete
-from app.models_delivery import AdminCredential, ExternalIdentity, MFAChallenge, OAuthState, SessionAssurance
+from app.models_delivery import AdminCredential, EmailOutbox, ExternalIdentity, MFAChallenge, OAuthState, SessionAssurance
 from app.models_admin_invitations import AdminInvitationChallenge
-from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, delivery_ready, encrypt_text, enqueue_email, google_ready, otp_email
+from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, delivery_ready, dispatch_email_now, encrypt_text, enqueue_email, google_ready, otp_email
 
 
 router = APIRouter()
@@ -95,7 +95,11 @@ def request_code(payload: RequestCode, request: Request, db: Session = Depends(g
         raise HTTPException(429, "Слишком много кодов для этого email. Повторите позже")
     challenge_id = str(uuid4())
     code = f"{secrets.randbelow(1000000):06d}"
-    db.execute(update(AuthChallenge).where(AuthChallenge.email == email, AuthChallenge.consumed_at.is_(None)).values(consumed_at=now))
+    old_ids = list(db.scalars(select(AuthChallenge.id).where(AuthChallenge.email == email, AuthChallenge.consumed_at.is_(None))).all())
+    db.execute(update(AuthChallenge).where(AuthChallenge.id.in_(old_ids)).values(consumed_at=now))
+    db.execute(update(EmailOutbox).where(EmailOutbox.dedup_key.in_(["auth-otp:" + identifier for identifier in old_ids]),
+        EmailOutbox.status.in_(["pending", "leased"])).values(status="failed", encrypted_payload="",
+        lease_token=None, lease_until=None, last_error_code="otp_replaced"))
     challenge = AuthChallenge(id=challenge_id, email=email, code_hash=secret_hash(f"{challenge_id}:{code}"), expires_at=now + timedelta(minutes=settings.otp_minutes), attempts=0)
     db.add(challenge)
     if not debug:
@@ -103,12 +107,15 @@ def request_code(payload: RequestCode, request: Request, db: Session = Depends(g
         locale = payload.locale or requested_locale(request, getattr(existing_user, "preferred_locale", "ru"))
         subject, text = otp_email(code, locale)
         try:
-            enqueue_email(db, email, subject, text, dedup_key="auth-otp:" + challenge_id, locale=locale, expires_at=challenge.expires_at)
+            mail = enqueue_email(db, email, subject, text, dedup_key="auth-otp:" + challenge_id, locale=locale, expires_at=challenge.expires_at)
         except DeliveryUnavailable:
             db.rollback()
             raise HTTPException(503, "Сервис отправки email не настроен")
     db.commit()
-    result = {"challenge_id": challenge_id, "delivery_status": "development" if debug else "queued"}
+    delivery_status = "development" if debug else dispatch_email_now(db, mail.id)
+    if delivery_status == "failed":
+        raise HTTPException(503, "Не удалось отправить код. Проверьте адрес почты и повторите позже")
+    result = {"challenge_id": challenge_id, "delivery_status": delivery_status}
     if debug:
         result["debug_code"] = code
     return result

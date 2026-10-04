@@ -85,7 +85,7 @@ export function AcceptAdminInvitation(){
       {enrollment&&<section aria-labelledby="qr-heading"><h2 id="qr-heading">{t('inviteScanQr')}</h2><p>{t('inviteScanNote')}</p>{priorEnrollment&&<p className="notice">{t('inviteReplaceQr')}</p>}{qr?<img className="enrollment-qr" src={qr} alt={t('inviteQrAlt')} width={280} height={280} referrerPolicy="no-referrer" onError={()=>setQrFailed(true)}/>:<p role="status">{t('inviteQrUnavailable')}</p>}<details><summary>{t('inviteManualSetup')}</summary><p>{t('inviteManualNote')}</p><p className="code-block" aria-label={t('secret')}>{enrollment.manual_entry_key}</p></details></section>}
       <form className="form-stack" onSubmit={submit}>
         {Boolean(enrollment||challenge)&&<Field label={t(enrollment?'mfaCode':'otp')}><input key={enrollment?'totp':'email'} required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} disabled={action.busy}/></Field>}
-        {challenge&&<div className="notice" role="status">{t('inviteCodeQueued')}{challenge.debug_code&&<p><strong>{t('debugCode')}: {challenge.debug_code}</strong></p>}</div>}
+        {challenge&&<div className="notice" role="status">{t(challenge.delivery_status==='sent'?'codeSent':'inviteCodeQueued')}{challenge.debug_code&&<p><strong>{t('debugCode')}: {challenge.debug_code}</strong></p>}</div>}
         <Button type="submit" disabled={action.busy}>{action.busy?t('loading'):enrollment?t('inviteFinish'):challenge?t('inviteVerifyEmail'):t('requestCode')}</Button>
         {Boolean(enrollment||challenge)&&<Button variant="ghost" disabled={action.busy} onClick={restart}>{t('inviteRestart')}</Button>}
       </form>

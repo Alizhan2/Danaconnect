@@ -19,7 +19,7 @@ import {
 type Challenge = {
   challenge_id: string;
   debug_code?: string;
-  delivery_status?: "queued" | "development";
+  delivery_status?: "queued" | "sent" | "development";
 };
 type MfaChallenge = {
   mfa_required: true;
@@ -109,10 +109,12 @@ function Login() {
             )}
           </p>
           <ActionNotice action={action} />
-          {challenge?.delivery_status === "queued" && (
+          {!mfa && (challenge?.delivery_status === "queued" || challenge?.delivery_status === "sent") && (
             <div className="notice">
               {tr(
-                "Код будет отправлен на вашу почту. Проверьте входящие и папку «Спам».",
+                challenge.delivery_status === "sent"
+                  ? "Код отправлен на вашу почту. Проверьте входящие и папку «Спам»."
+                  : "Код будет отправлен на вашу почту. Проверьте входящие и папку «Спам».",
               )}
             </div>
           )}

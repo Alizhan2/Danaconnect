@@ -1,7 +1,7 @@
 import type {DocumentVersion,Result,User} from './types';
 export type AdminUser=User&{preferred_locale?:string};
 export type AdminInvitation={id:string;email:string;full_name:string;locale:'ru'|'kk'|'en';status:'pending'|'accepted'|'revoked'|'expired';created_at:string;expires_at:string;accepted_at:string|null;delivery_status:'pending'|'leased'|'sent'|'failed'|null;invited_by:string};
-export type AdminInvitationChallenge={challenge_id:string;delivery_status:'pending'|'leased'|'sent'|'failed'|null;email:string;full_name:string;expires_in:number;debug_code?:string};
+export type AdminInvitationChallenge={challenge_id:string;delivery_status:'queued'|'sent'|'development';email:string;full_name:string;expires_in:number;debug_code?:string};
 export type AdminInvitationEnrollment={enrollment_token:string;totp_uri:string;qr_data_url:string;manual_entry_key:string;expires_in:number;email:string;full_name:string};
 export type AdminDocument=DocumentVersion&{required_roles:string[];direction_id?:string|null;active:boolean;content_kk?:string|null;content_en?:string|null;content_hash:string;published_at:string};
 export type SupportReport={id:string;reporter_id:string;entity_type:string;entity_id:string;reason:string;status:string;created_at:string};

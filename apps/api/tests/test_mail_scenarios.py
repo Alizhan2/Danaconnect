@@ -11,7 +11,7 @@ import ssl
 
 from cryptography.fernet import Fernet
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import event, func, select
 
 from app import delivery, jobs_calendar
 from app.booking_lifecycle import cancel_reservation
@@ -154,6 +154,7 @@ def test_single_recipient_refusal_retries_only_transient_codes(mail_transport, r
 def test_otp_api_expiry_matches_outbox_and_delayed_code_never_dispatches(integrated_api, mail_transport, monkeypatch):
     api = integrated_api
     monkeypatch.setattr(settings, "auth_debug_code", False)
+    monkeypatch.setattr(identity, "dispatch_email_now", lambda *_: "queued")
     requested = api.call("POST", "/auth/request-code", json={"email": "new-admin@example.test", "locale": "en"})
     assert requested.status_code == 200 and requested.json()["delivery_status"] == "queued"
     assert "debug_code" not in requested.json()
@@ -172,6 +173,123 @@ def test_otp_api_expiry_matches_outbox_and_delayed_code_never_dispatches(integra
     with api.factory() as db:
         item = db.get(EmailOutbox, item_id)
         assert item.last_error_code == "message_expired" and item.encrypted_payload == ""
+
+
+def test_otp_sends_before_response_after_commit_and_leaves_other_mail_queued(integrated_api, mail_transport, monkeypatch):
+    api = integrated_api
+    _, messages, _ = mail_transport
+    other_id = queue(api, key="unrelated-older-message")
+    monkeypatch.setattr(settings, "auth_debug_code", False)
+    engine = api.factory.kw["bind"]
+    transactions = set()
+    def begin(connection):
+        transactions.add(connection)
+    def finish(connection):
+        transactions.discard(connection)
+    event.listen(engine, "begin", begin)
+    event.listen(engine, "commit", finish)
+    event.listen(engine, "rollback", finish)
+    original_sender = delivery.send_email
+    def sender(payload, key):
+        assert not transactions, "SMTP must not hold a database transaction"
+        with api.factory() as check:
+            challenge_id = key.removeprefix("auth-otp:")
+            assert check.get(AuthChallenge, challenge_id) is not None
+        assert not transactions
+        return original_sender(payload, key)
+    monkeypatch.setattr(delivery, "send_email", sender)
+    try:
+        response = api.call("POST", "/auth/request-code", json={"email": "fast@example.test", "locale": "en"})
+        assert response.status_code == 200 and response.json()["delivery_status"] == "sent"
+        assert "debug_code" not in response.json()
+        assert len(messages) == 1 and messages[0]["To"] == "fast@example.test"
+        code = re.search(r"\b\d{6}\b", messages[0].get_content()).group()
+        with api.factory() as db:
+            item = db.scalar(select(EmailOutbox).where(EmailOutbox.dedup_key == "auth-otp:" + response.json()["challenge_id"]))
+            assert item.status == "sent" and item.attempts == 1 and item.encrypted_payload == ""
+            item_id = item.id
+            assert db.get(EmailOutbox, other_id).status == "pending"
+        assert delivery.process_outbox(api.factory, limit=1, outbox_id=item_id)["claimed"] == 0
+        verified = api.call("POST", "/auth/verify-code", json={"challenge_id": response.json()["challenge_id"], "code": code})
+        assert verified.status_code == 200
+    finally:
+        event.remove(engine, "begin", begin)
+        event.remove(engine, "commit", finish)
+        event.remove(engine, "rollback", finish)
+
+
+def test_otp_transient_failure_stays_queued_for_worker_recovery(integrated_api, mail_transport, monkeypatch):
+    api = integrated_api
+    _, messages, behaviours = mail_transport
+    monkeypatch.setattr(settings, "auth_debug_code", False)
+    behaviours["send_error"] = smtplib.SMTPDataError(451, b"synthetic private body")
+    response = api.call("POST", "/auth/request-code", json={"email": "retry@example.test"})
+    assert response.status_code == 200 and response.json()["delivery_status"] == "queued"
+    with api.factory() as db:
+        item = db.scalar(select(EmailOutbox))
+        assert item.status == "pending" and item.attempts == 1 and item.encrypted_payload
+        retry_at = item.next_attempt_at
+    assert delivery.process_outbox(api.factory)["claimed"] == 0
+    behaviours.pop("send_error")
+    monkeypatch.setattr(delivery, "utcnow", lambda: retry_at)
+    assert delivery.process_outbox(api.factory)["sent"] == 1
+    assert len(messages) == 2 and messages[0]["Message-ID"] == messages[1]["Message-ID"]
+
+
+def test_otp_permanent_failure_is_not_reported_as_sent(integrated_api, mail_transport, monkeypatch):
+    api = integrated_api
+    monkeypatch.setattr(settings, "auth_debug_code", False)
+    mail_transport[2]["send_error"] = smtplib.SMTPDataError(550, b"private refused body")
+    response = api.call("POST", "/auth/request-code", json={"email": "refused@example.test"})
+    assert response.status_code == 503
+    assert "private refused body" not in response.text and "debug_code" not in response.text
+    with api.factory() as db:
+        item = db.scalar(select(EmailOutbox))
+        assert item.status == "failed" and item.encrypted_payload == "" and item.attempts == 1
+
+
+def test_replaced_ordinary_code_cancels_pending_mail(integrated_api, mail_transport, monkeypatch):
+    api = integrated_api
+    monkeypatch.setattr(settings, "auth_debug_code", False)
+    monkeypatch.setattr(identity, "dispatch_email_now", lambda *_: "queued")
+    first = api.call("POST", "/auth/request-code", json={"email": "replace@example.test"})
+    assert first.status_code == 200
+    with api.factory() as db:
+        old = db.get(AuthChallenge, first.json()["challenge_id"])
+        old.created_at = utcnow() - timedelta(seconds=61)
+        db.commit()
+    second = api.call("POST", "/auth/request-code", json={"email": "replace@example.test"})
+    assert second.status_code == 200
+    with api.factory() as db:
+        old = db.scalar(select(EmailOutbox).where(EmailOutbox.dedup_key == "auth-otp:" + first.json()["challenge_id"]))
+        assert old.status == "failed" and old.last_error_code == "otp_replaced" and old.encrypted_payload == ""
+        assert db.get(AuthChallenge, first.json()["challenge_id"]).consumed_at
+        assert db.scalar(select(EmailOutbox).where(EmailOutbox.dedup_key == "auth-otp:" + second.json()["challenge_id"])).status == "pending"
+
+
+def test_immediate_delivery_requires_commit_and_does_not_steal_active_lease(integrated_api, mail_transport):
+    api = integrated_api
+    item_id = queue(api)
+    with api.factory() as db:
+        row = db.get(EmailOutbox, item_id)
+        with pytest.raises(ValueError, match="committed"):
+            delivery.dispatch_email_now(db, item_id)
+        row.status, row.lease_token, row.lease_until = "leased", "existing-worker", utcnow() + timedelta(seconds=60)
+        db.commit()
+        assert delivery.dispatch_email_now(db, item_id) == "queued"
+    assert not mail_transport[1]
+
+
+def test_immediate_delivery_setup_failure_preserves_pending_mail(integrated_api, mail_transport, monkeypatch, caplog):
+    api = integrated_api
+    item_id = queue(api)
+    def broken(*_, **__):
+        raise RuntimeError("123456 private@example.test secret")
+    monkeypatch.setattr(delivery, "process_outbox", broken)
+    with api.factory() as db:
+        assert delivery.dispatch_email_now(db, item_id) == "queued"
+        assert db.get(EmailOutbox, item_id).status == "pending"
+    assert "123456" not in caplog.text and "private@example.test" not in caplog.text and "secret" not in caplog.text
 
 
 def test_transient_smtp_retry_waits_then_succeeds_with_same_message_id(integrated_api, mail_transport, monkeypatch):
