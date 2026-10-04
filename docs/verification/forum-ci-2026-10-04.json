@@ -1,0 +1,17 @@
+{
+  "source_commit": "3c28ff86da6a1aaa70f572f581bba29f6d222f77",
+  "production_merge_commit": "4eb100165146d1cc396ec95e5fcfa5e8b7c10735",
+  "merge_tree_identical_to_verified_source": true,
+  "workflow_run": 37217648895,
+  "workflow_url": "https://github.com/Alizhan2/Danaconnect/actions/runs/37217648895",
+  "conclusion": "success",
+  "jobs": {"api": "success", "postgres-concurrency": "success", "web": "success", "admin": "success"},
+  "api_tests": {"passed": 417, "warnings": 27, "duration_seconds": 83.42},
+  "web_tests": {"frontend": 23, "date_format": 16, "downloads": 15, "mobile_navigation": 4, "registration": 22, "mentor_offers": 15, "total": 95},
+  "admin_tests": {"invitations": 16, "registration": 10, "total": 26},
+  "both_typechecks_passed": true,
+  "both_production_builds_passed": true,
+  "postgresql": {"version": "18.6", "load_requests": 286, "load_invariants_passed": 55, "invitation_requests": 120, "invitation_checks_passed": 25, "server_errors": 0, "transport_errors": 0},
+  "postgresql_new_races": ["competing mentor offer acceptances", "acceptance versus withdrawal with controlled overlap", "acceptance versus fresh competing mentor offer with controlled overlap"],
+  "scope": "Synthetic isolated CI databases and accounts; no real email, Google OAuth, private cloud storage, or production capacity measurement"
+}

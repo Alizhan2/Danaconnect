@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-04",
+  "environment": "Isolated local SQLite API on 8004, web on 3300, admin on 3301",
+  "data": "Synthetic demo accounts and a separate disposable database",
+  "email_provider": "none",
+  "ai_provider": "disabled",
+  "verified": [
+    "Mentor signs in through the visible development-only code UI",
+    "Forum lists mentee ideas and projects with mentors",
+    "Mentor submits support motivation to a published mentee idea",
+    "Pending offer appears on the project and mentor dashboard with initiator withdrawal action",
+    "Mentee author signs in and sees incoming offer with decision actions",
+    "Mentee accepts support on the idea page",
+    "Project assigns the selected mentor, decreases available places, and adds team membership",
+    "Accepted offer shows participation and conversation links",
+    "Conversation opens with the mentor and idea title",
+    "Synthetic message is sent and visibly saved in the conversation"
+  ],
+  "private_screenshots": ["artifacts/verification/forum-accepted-local.png", "artifacts/verification/forum-chat-local.png"],
+  "limitations": ["The API process predates the final notification/lock/export review fixes; final source is fully checked in CI", "This local run does not measure production email, MFA, or cloud performance", "Dev server cold compilation caused delays before the scenario succeeded"],
+  "owned_test_processes_stopped": true
+}

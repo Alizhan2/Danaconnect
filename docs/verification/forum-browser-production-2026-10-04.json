@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-04",
+  "origin": "https://danaconnect.vercel.app",
+  "page": "/forum",
+  "anonymous": true,
+  "verified": ["Forum renders without demo banner", "Active directions IT, Education and Psychology load", "No published projects displays an explicit empty state", "Idea filter updates and finishes loading", "Mobile navigation opens and closes", "RU, KK and EN labels render on the live page"],
+  "mobile_width_measurement": {"viewport": 392, "body_scroll_width": 377, "document_scroll_width": 377, "horizontal_overflow": false},
+  "temporary_viewport_reset": true,
+  "locale_restored": "ru",
+  "private_desktop_screenshot": "artifacts/verification/forum-production-desktop.png",
+  "limitations": ["No real account login or participant mutation performed", "The mobile full-page screenshot tool failed; mobile verification uses visible UI and DOM dimensions", "Authenticated workflow is checked on the separate synthetic local stand and in CI"]
+}

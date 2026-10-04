@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-10-04T16:41:17.367543+00:00",
+  "scope": "Synthetic PostgreSQL invitation HTTP races with TestClient; no real email",
+  "runtime": {
+    "server_version": "18.6 (Debian 18.6-1.pgdg13+2)",
+    "server_version_num": "180006",
+    "transaction_isolation": "read committed",
+    "max_connections": 100,
+    "database": "dc_pilot_load_invitations",
+    "endpoint": "literal loopback",
+    "schema": "public",
+    "statement_timeout_ms": 20000,
+    "lock_timeout_ms": 10000,
+    "encoding": "UTF8",
+    "locale_provider": "b",
+    "datlocale": "C.UTF-8",
+    "lc_collate": "en_US.utf8",
+    "lc_ctype": "en_US.utf8",
+    "collation_version_recorded": "1",
+    "collation_version_actual": "1",
+    "locale_provider_name": "builtin",
+    "migration_revision": "94c221d8ff37",
+    "table_count": 50
+  },
+  "concurrent_clients": 20,
+  "waves": [
+    {
+      "name": "create invitation",
+      "requests": 20,
+      "statuses": {
+        "409": 19,
+        "201": 1
+      }
+    },
+    {
+      "name": "request invitation OTP",
+      "requests": 20,
+      "statuses": {
+        "429": 19,
+        "200": 1
+      }
+    },
+    {
+      "name": "consume invitation OTP",
+      "requests": 20,
+      "statuses": {
+        "400": 19,
+        "200": 1
+      }
+    },
+    {
+      "name": "consume MFA enrollment",
+      "requests": 20,
+      "statuses": {
+        "410": 19,
+        "200": 1
+      }
+    },
+    {
+      "name": "revoke versus accept",
+      "requests": 20,
+      "statuses": {
+        "accept:200": 1,
+        "revoke:409": 10,
+        "accept:410": 9
+      }
+    },
+    {
+      "name": "shared OTP quota",
+      "requests": 20,
+      "statuses": {
+        "invitation:429": 10,
+        "ordinary:429": 9,
+        "ordinary:200": 1
+      }
+    }
+  ],
+  "setup_requests": 4,
+  "checks": [
+    {
+      "name": "create invitation has no server errors",
+      "passed": true
+    },
+    {
+      "name": "create invitation has exactly one winner",
+      "passed": true
+    },
+    {
+      "name": "creation never exposes a bearer token",
+      "passed": true
+    },
+    {
+      "name": "one encrypted invitation email",
+      "passed": true
+    },
+    {
+      "name": "invitee has no account before proof",
+      "passed": true
+    },
+    {
+      "name": "request invitation OTP has no server errors",
+      "passed": true
+    },
+    {
+      "name": "request invitation OTP has exactly one winner",
+      "passed": true
+    },
+    {
+      "name": "consume invitation OTP has no server errors",
+      "passed": true
+    },
+    {
+      "name": "consume invitation OTP has exactly one winner",
+      "passed": true
+    },
+    {
+      "name": "email proof does not issue a session",
+      "passed": true
+    },
+    {
+      "name": "QR generated locally",
+      "passed": true
+    },
+    {
+      "name": "consume MFA enrollment has no server errors",
+      "passed": true
+    },
+    {
+      "name": "consume MFA enrollment has exactly one winner",
+      "passed": true
+    },
+    {
+      "name": "MFA acceptance issues administrator session",
+      "passed": true
+    },
+    {
+      "name": "one invitee account",
+      "passed": true
+    },
+    {
+      "name": "one active MFA credential",
+      "passed": true
+    },
+    {
+      "name": "one assured invitee session",
+      "passed": true
+    },
+    {
+      "name": "revocation race has no server errors",
+      "passed": true
+    },
+    {
+      "name": "revocation race has at most one accepted account",
+      "passed": true
+    },
+    {
+      "name": "revocation race final state is serialized",
+      "passed": true
+    },
+    {
+      "name": "revocation race destroys pending enrollment secrets",
+      "passed": true
+    },
+    {
+      "name": "revocation race erases unsent invitation payload",
+      "passed": true
+    },
+    {
+      "name": "shared OTP quota has one winner",
+      "passed": true
+    },
+    {
+      "name": "shared OTP competitors all hit persisted rate limit",
+      "passed": true
+    },
+    {
+      "name": "shared OTP persisted only one challenge across both routes",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "limitations": [
+    "SMTP delivery and inbox receipt are not measured",
+    "Synthetic owner session is pre-provisioned with MFA assurance",
+    "Browser UI is checked separately"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "verified_checksum": true,
+  "archive_bytes": 152720,
+  "encrypted_bytes": 203724,
+  "encrypted_decrypt_roundtrip": true,
+  "separate_private_key": true,
+  "offsite": false,
+  "source_revision_before_upgrade": "6b12d23cc9f1",
+  "raw_sha256": "0cecd21f58b0a13034756fa34011c87af3c3ae5a0e41cf6caddc3ba50065402f"
+}
