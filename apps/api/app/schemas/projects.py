@@ -82,5 +82,9 @@ class ApplicationDecision(Input):
         return self
 
 
+class MentorOfferCreate(Input):
+    motivation: str = Field(min_length=10, max_length=5000)
+
+
 class MessageCreate(Input):
     body: str = Field(min_length=1, max_length=5000)

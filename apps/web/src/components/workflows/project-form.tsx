@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import type { Direction, Project } from "@/lib/types";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/api";
-import { AITextAssistant } from "@/components/ai-assistant";
 import { useLocale, translatePhrase as tr } from "@/lib/i18n";
 import { ActionNotice, LoadState, mutate, useAction, useLoad } from "./common";
 export function ProjectForm({
@@ -154,24 +153,6 @@ export function ProjectForm({
           {action.busy ? t.loading : tr("Сохранить и отправить на проверку")}
         </Button>
       </form>
-      <AITextAssistant
-        purpose="project"
-        initialText={[draft.title, draft.problem, draft.description]
-          .filter(Boolean)
-          .join("\n\n")}
-        onApply={(proposal) =>
-          setDraft((current) => ({
-            ...current,
-            title: proposal.title.slice(0, 200),
-            problem: proposal.problem,
-            description: proposal.description,
-            required_skills: proposal.required_skills
-              .map((skill) => skill.trim().slice(0, 80))
-              .filter(Boolean)
-              .join(", "),
-          }))
-        }
-      />
     </LoadState>
   );
 }

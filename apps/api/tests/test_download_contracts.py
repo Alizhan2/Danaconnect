@@ -1,7 +1,7 @@
 """Download contracts use synthetic accounts and disposable SQLite only."""
 from datetime import timedelta
 
-from app.models import Booking, Slot, User, utcnow
+from app.models import Application, Booking, Project, Slot, User, utcnow
 
 
 def test_privacy_download_contract_own_json_no_secrets(integrated_api):
@@ -24,6 +24,43 @@ def test_privacy_download_contract_own_json_no_secrets(integrated_api):
     assert payload["privacy_requests"][0]["reason"] == "OWN-PRIVACY-REQUEST"
     for forbidden in ("OTHER-PRIVATE-REQUEST", "stranger@example.test", "mentor@example.test", "totp_secret", "session_token", "debug_code"):
         assert forbidden not in response.text
+
+
+def test_privacy_export_includes_both_application_sides_and_initiator_metadata(integrated_api):
+    api = integrated_api
+    with api.factory() as db:
+        other_mentor = User(email="other-mentor@example.test", full_name="Synthetic other mentor", role="mentor")
+        db.add(other_mentor)
+        db.flush()
+        project = Project(owner_id=api.ids["mentee"], direction_id=api.ids["direction"], title="Synthetic export idea",
+                          problem="Synthetic export test", description="Synthetic export test", private_details="PRIVATE EXPORT IDEA")
+        db.add(project)
+        db.flush()
+        outgoing = Application(project_id=project.id, mentee_id=api.ids["mentee"], mentor_id=api.ids["mentor"], initiator_role="mentor", motivation="OWN OUTGOING OFFER", status="pending")
+        incoming = Application(mentee_id=api.ids["stranger"], mentor_id=api.ids["mentor"], initiator_role="mentee", motivation="OWN INCOMING REQUEST", status="pending")
+        unrelated = Application(project_id=project.id, mentee_id=api.ids["mentee"], mentor_id=other_mentor.id, initiator_role="mentor", motivation="UNRELATED MENTOR OFFER", status="pending")
+        db.add_all([outgoing, incoming, unrelated])
+        db.commit()
+        outgoing_id, incoming_id, unrelated_id = outgoing.id, incoming.id, unrelated.id
+    exported = api.call("GET", "/me/data-export", "mentor")
+    assert exported.status_code == 200, exported.text
+    rows = {row["id"]: row for row in exported.json()["applications"]}
+    assert set(rows) == {outgoing_id, incoming_id}
+    assert rows[outgoing_id]["initiator_role"] == "mentor"
+    assert rows[outgoing_id]["initiator_id"] == api.ids["mentor"]
+    assert rows[outgoing_id]["decision_user_id"] == api.ids["mentee"]
+    assert rows[incoming_id]["initiator_role"] == "mentee"
+    assert rows[incoming_id]["initiator_id"] == api.ids["stranger"]
+    assert rows[incoming_id]["decision_user_id"] == api.ids["mentor"]
+    for row in rows.values():
+        assert row["mentor_id"] == api.ids["mentor"]
+        assert "mentee_id" in row
+    for forbidden in (unrelated_id, "UNRELATED MENTOR OFFER", "other-mentor@example.test", "mentee@example.test", "stranger@example.test", "PRIVATE EXPORT IDEA"):
+        assert forbidden not in exported.text
+    mentee_rows = api.call("GET", "/me/data-export", "mentee").json()["applications"]
+    assert {row["id"] for row in mentee_rows} == {outgoing_id, unrelated_id}
+    stranger_rows = api.call("GET", "/me/data-export", "stranger").json()["applications"]
+    assert [row["id"] for row in stranger_rows] == [incoming_id]
 
 
 def test_calendar_download_contract_only_own_utf8_events(integrated_api):

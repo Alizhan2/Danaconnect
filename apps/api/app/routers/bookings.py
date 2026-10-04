@@ -45,7 +45,10 @@ def _lock_users(db: Session, user_ids: list[str]) -> dict[str, User]:
         except OperationalError:
             db.rollback()
             raise HTTPException(409, "Расписание обновляется. Повторите действие")
-    rows = db.scalars(select(User).where(User.id.in_(ids)).order_by(User.id).with_for_update()
+    # Match the shared user lock: serialize non-key writes without blocking
+    # another transaction's notification/audit foreign-key checks.
+    rows = db.scalars(select(User).where(User.id.in_(ids)).order_by(User.id)
+                      .with_for_update(key_share=db.bind.dialect.name == "postgresql")
                       .execution_options(populate_existing=True)).all()
     users = {item.id: item for item in rows}
     if len(users) != len(ids):
