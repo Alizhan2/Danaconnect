@@ -1,12 +1,13 @@
 "use client";
-import { useLocale, translatePhrase as tr } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Project, User, DocumentVersion } from "@/lib/types";
+import type { Application, Project, User, DocumentVersion } from "@/lib/types";
 import { AppShell } from "@/components/shell";
 import { Badge, Button, Field } from "@/components/ui";
 import { ProjectForm } from "@/components/workflows/project-form";
+import { MentorOffers } from "@/components/workflows/mentor-offers";
 import { ReportAction } from "@/components/report-action";
 import { ProjectDiscussion, ProjectTeam, PrivateAttachments } from "@/components/collaboration";
 import {
@@ -38,22 +39,25 @@ export default function ProjectPage({
     setRead([]);
   }, [locale]);
   const load = useLoad(async () => {
-    const project = await api<Project>(`/projects/${id}`);
-    let user: User | null = null;
-    try {
-      user = await api<User>("/auth/me");
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 401)) throw error;
-    }
+    const [project, user] = await Promise.all([
+      api<Project>(`/projects/${id}`),
+      api<User>("/auth/me").catch((error: unknown) => {
+        if (error instanceof ApiError && error.status === 401) return null;
+        throw error;
+      }),
+    ]);
     let access = {is_member:false, can_invite:false};
     if(user?.account_status === 'active') {
       try { access = await api<typeof access>(`/projects/${id}/access`); }
       catch(error) {if (!(error instanceof ApiError && [403,404].includes(error.status))) throw error;}
     }
-    return { project, user, access };
+    const applications = user?.account_status === "active" && user.role === "mentee" && user.id !== project.owner_id
+      ? await api<Application[]>(`/applications?project_id=${encodeURIComponent(id)}`) : [];
+    return { project, user, access, applications };
   }, [id]);
   const project = load.data?.project;
   const user = load.data?.user;
+  const application = load.data?.applications.find((item) => item.project_id === id && ["pending", "accepted"].includes(item.status));
   async function apply(event: FormEvent) {
     event.preventDefault();
     await action.run(async () => {
@@ -63,6 +67,7 @@ export default function ProjectPage({
         motivation,
       });
       setMotivation("");
+      await load.reload();
     }, tr("Заявка отправлена. Следите за ответом в кабинете."));
   }
   async function reveal() {
@@ -85,6 +90,7 @@ export default function ProjectPage({
                   <div className="tags">
                     <Badge tone="blue">{tr(statusText(project.stage))}</Badge>
                     <Badge>{tr(statusText(project.visibility_status))}</Badge>
+                    <Badge>{tr(project.owner_role === "mentee" && !project.mentor_id ? "Идея ищет ментора" : "Проект с ментором")}</Badge>
                   </div>
                   <h2 style={{ marginTop: 24 }}>{tr("Проблема")}</h2>
                   <p className="pre-line">{project.problem}</p>
@@ -98,9 +104,12 @@ export default function ProjectPage({
                   </div>
                   <p style={{ marginTop: 20 }}>
                     {tr("Мест в проекте:")} {project.capacity}
+                    {project.available_places !== undefined && <> · {tr("Свободных мест:")} {project.available_places}</>}
                   </p>
-                  <Button href="/projects" variant="ghost">
-                    {tr("Все проекты")}
+                  {project.owner_name && <p>{tr("Автор:")} {project.owner_name}{project.owner_role && <> · {tr(statusText(project.owner_role))}</>}</p>}
+                  {project.mentor_name && <p>{tr("Ментор:")} {project.mentor_name}</p>}
+                  <Button href="/forum" variant="ghost">
+                    {tr("Вернуться на форум")}
                   </Button>
                 </section>
                 <aside className="panel">
@@ -171,7 +180,17 @@ export default function ProjectPage({
                         </Button>
                       </div>
                     </>
-                  ) : user.role === "mentee" && project.mentor_id ? (
+                  ) : application ? (
+                    <>
+                      <Badge>{tr(statusText(application.status))}</Badge>
+                      <p>{tr(application.status === "pending" ? "Вы уже отправили заявку. Ответ появится в кабинете." : "Ваша заявка принята. Откройте участие в кабинете.")}</p>
+                      <Button href="/dashboard">{tr("Открыть участие")}</Button>
+                      {application.status === "pending" && <Button variant="secondary" disabled={action.busy} onClick={() => action.run(async () => {
+                        await mutate(`/applications/${application.id}/withdraw`);
+                        await load.reload();
+                      }, tr("Заявка отозвана"))}>{tr("Отозвать заявку")}</Button>}
+                    </>
+                  ) : user.role === "mentee" && project.mentor_id && project.visibility_status === "published" && project.available_places !== 0 ? (
                     <form className="form-stack" onSubmit={apply}>
                       <Field label={tr("Почему вы хотите участвовать")}>
                         <textarea
@@ -189,15 +208,16 @@ export default function ProjectPage({
                   ) : (
                     <>
                       <p>
-                        {tr(
-                          "Для этого проекта индивидуальный запрос можно обсудить с ментором через каталог и кабинет.",
-                        )}
+                        {tr(project.available_places === 0 && project.mentor_id ? "Нет свободных мест" : project.owner_role === "mentee" && !project.mentor_id ? "Идея ищет ментора. Менторы могут предложить поддержку ниже." : "Для этого проекта индивидуальный запрос можно обсудить с ментором через каталог и кабинет.")}
                       </p>
                       <Button href="/catalog">{tr("Найти ментора")}</Button>
                     </>
                   )}
                 </aside>
               </div>
+              {project.owner_role === "mentee" && user?.account_status === "active" &&
+                (user.id === project.owner_id || user.role === "mentor") &&
+                <MentorOffers key={`${project.id}:${user.id}`} project={project} user={user} onChanged={load.reload} />}
               {user && load.data?.access.is_member &&
                 (user.id !== project.owner_id ||
                   user.account_status !== "active") && (

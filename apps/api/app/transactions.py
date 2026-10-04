@@ -16,7 +16,13 @@ def lock_users(db: Session, user_ids: list[str]) -> dict[str, User]:
         if db.get_bind().dialect.name == "sqlite":
             for user_id in ids:
                 db.execute(update(User).where(User.id == user_id).values(capacity=User.capacity))
-        rows = db.scalars(select(User).where(User.id.in_(ids)).order_by(User.id).with_for_update().execution_options(populate_existing=True)).all()
+        # PostgreSQL's NO KEY UPDATE still serializes capacity/profile/status
+        # writers, but permits FK KEY SHARE checks for notifications/audit.
+        # FOR UPDATE here can deadlock when a waiting transaction has already
+        # locked another recipient. These mutations never change users.id.
+        rows = db.scalars(select(User).where(User.id.in_(ids)).order_by(User.id)
+            .with_for_update(key_share=db.get_bind().dialect.name == "postgresql")
+            .execution_options(populate_existing=True)).all()
     except OperationalError:
         db.rollback()
         raise HTTPException(409, "Данные обновляются. Повторите действие")

@@ -195,6 +195,7 @@ class Application(Base):
     __tablename__ = "applications"
     __table_args__ = (
         CheckConstraint("status IN ('pending','accepted','rejected','withdrawn')", name="ck_application_status"),
+        CheckConstraint("initiator_role IN ('mentee','mentor')", name="ck_application_initiator"),
         CheckConstraint("mentee_id <> mentor_id", name="ck_application_parties"),
         Index("uq_pending_project_application", "project_id", "mentee_id", "mentor_id", unique=True,
               sqlite_where=text("status = 'pending' AND project_id IS NOT NULL"), postgresql_where=text("status = 'pending' AND project_id IS NOT NULL")),
@@ -206,6 +207,7 @@ class Application(Base):
     mentee_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     mentor_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     motivation: Mapped[str] = mapped_column(Text)
+    initiator_role: Mapped[str] = mapped_column(String(10), default="mentee", server_default="mentee")
     status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = timestamp()

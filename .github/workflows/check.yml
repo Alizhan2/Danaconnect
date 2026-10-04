@@ -97,6 +97,7 @@ jobs:
       - run: node scripts/download-tests.mjs
       - run: node scripts/mobile-navigation-tests.mjs
       - run: node scripts/registration-tests.mjs
+      - run: node scripts/mentor-offer-tests.mjs
       - run: npm run build
         working-directory: apps/web
   admin:

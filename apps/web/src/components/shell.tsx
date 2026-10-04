@@ -78,7 +78,7 @@ export function AppShell({
   const nav = [
     { href: "/register", label: tr("Регистрация") },
     { href: "/catalog", label: t.mentors },
-    { href: "/projects", label: t.projects },
+    { href: "/forum", label: tr("Форум") },
     { href: "/showcase", label: t.showcase },
     { href: "/impact", label: tr("Отчёт платформы") },
   ];
@@ -88,7 +88,7 @@ export function AppShell({
     { href: "/support", label: tr("Поддержка"), Icon: LifeBuoy },
     { href: "/catalog", label: t.mentors, Icon: Users },
     { href: "/recommendations", label: tr("Подбор ментора"), Icon: Users },
-    { href: "/projects", label: t.projects, Icon: FolderOpen },
+    { href: "/forum", label: tr("Форум"), Icon: FolderOpen },
     { href: "/calendar", label: t.calendar, Icon: CalendarDays },
     { href: "/messages", label: t.messages, Icon: MessageSquare },
     { href: "/team", label: tr("Команда"), Icon: Users },
@@ -134,7 +134,7 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className={pathname.startsWith(item.href) ? "active" : ""}
+                className={pathname.startsWith(item.href) || (item.href === "/forum" && pathname.startsWith("/projects")) ? "active" : ""}
               >
                 {item.label}
               </Link>
@@ -181,7 +181,7 @@ export function AppShell({
                 onClick={() => setOpen(false)}
                 key={item.href}
                 href={item.href}
-                aria-current={pathname.startsWith(item.href) ? "page" : undefined}
+                aria-current={pathname.startsWith(item.href) || (item.href === "/forum" && pathname.startsWith("/projects")) ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -198,7 +198,7 @@ export function AppShell({
                 <Link
                   key={href}
                   href={href}
-                  className={pathname.startsWith(href) ? "active" : ""}
+                  className={pathname.startsWith(href) || (href === "/forum" && pathname.startsWith("/projects")) ? "active" : ""}
                 >
                   <Icon size={19} />
                   {label}

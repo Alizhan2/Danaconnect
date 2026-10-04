@@ -59,6 +59,11 @@ export interface Project {
   id: string;
   owner_id: string;
   mentor_id?: string | null;
+  owner_role?: string;
+  owner_name?: string;
+  mentor_name?: string | null;
+  occupied?: number;
+  available_places?: number;
   direction_id: string;
   title: string;
   problem: string;
@@ -75,6 +80,11 @@ export interface Application {
   project_id?: string | null;
   mentee_id: string;
   mentor_id: string;
+  initiator_role?: "mentee" | "mentor";
+  initiator_id?: string;
+  decision_user_id?: string;
+  participation_id?: string | null;
+  conversation_id?: string | null;
   motivation: string;
   status: string;
   created_at: string;

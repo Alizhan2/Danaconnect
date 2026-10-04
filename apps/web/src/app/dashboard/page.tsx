@@ -634,10 +634,9 @@ function Dashboard() {
                             </h3>
                             <Badge>{tr(statusText(application.status))}</Badge>
                           </div>
-                          <p>
-                            {application.mentee_name || tr("Менти")} →{" "}
-                            {application.mentor_name || tr("Ментор")}
-                          </p>
+                          <p>{application.initiator_role === "mentor"
+                            ? <>{application.mentor_name || tr("Ментор")} → {application.mentee_name || tr("Менти")} · {tr("Предложение поддержки")}</>
+                            : <>{application.mentee_name || tr("Менти")} → {application.mentor_name || tr("Ментор")}</>}</p>
                           <p className="pre-line">{application.motivation}</p>
                           {application.rejection_reason && (
                             <p>
@@ -646,7 +645,7 @@ function Dashboard() {
                             </p>
                           )}
                           {application.status === "pending" &&
-                            (application.mentor_id === user.id ? (
+                            ((application.decision_user_id || application.mentor_id) === user.id ? (
                               <>
                                 <Field label={tr("Причина отклонения")}>
                                   <select
@@ -727,7 +726,7 @@ function Dashboard() {
                                   ))}
                                 </div>
                               </>
-                            ) : (
+                            ) : (application.initiator_id || application.mentee_id) === user.id ? (
                               <Button
                                 disabled={action.busy}
                                 variant="secondary"
@@ -742,7 +741,7 @@ function Dashboard() {
                               >
                                 {tr("Отозвать заявку")}
                               </Button>
-                            ))}
+                            ) : null)}
                         </article>
                       ))}
                     </div>

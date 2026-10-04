@@ -221,6 +221,7 @@ def own_rows(db, model, condition, keys):
 
 @router.get("/me/data-export")
 def data_export(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.routers.projects import application_initiation
     from app.models_collaboration import PrivateAttachment, ProjectComment, TeamInvitation
     from app.models_growth import GrowthAward, GrowthPrivacy, PointEvent
     from app.models_ai import AIPreference, AIProposal
@@ -233,12 +234,17 @@ def data_export(user: User = Depends(get_current_user), db: Session = Depends(ge
         .join(DocumentVersion, DocumentVersion.id == Consent.document_version_id)
         .join(Document, Document.id == DocumentVersion.document_id).where(Consent.user_id == user.id)).all()
     participation_ids = select(Participation.id).where((Participation.mentee_id == user.id) | (Participation.mentor_id == user.id))
+    application_fields = ("id", "project_id", "mentee_id", "mentor_id", "motivation", "status", "created_at")
+    application_rows = [{**{key: getattr(row, key) for key in application_fields}, **application_initiation(row)}
+        for row in db.scalars(select(Application).where(
+            (Application.mentee_id == user.id) | (Application.mentor_id == user.id))
+            .order_by(Application.created_at.desc(), Application.id)).all()]
     return {"exported_at": utcnow(), "account": account,
         "consents": [{"document": document.title, "version": version.version, "accepted_at": consent.accepted_at,
             "locale": consent.locale, "content_hash": consent.presented_content_hash or version.content_hash,
             "content": getattr(version, f"content_{consent.locale}", None) or version.content} for consent, version, document in consents],
         "projects": own_rows(db, Project, Project.owner_id == user.id, ["id", "title", "problem", "description", "private_details", "stage", "created_at"]),
-        "applications": own_rows(db, Application, Application.mentee_id == user.id, ["id", "project_id", "motivation", "status", "created_at"]),
+        "applications": application_rows,
         "participations": own_rows(db, Participation, (Participation.mentee_id == user.id) | (Participation.mentor_id == user.id), ["id", "project_id", "status", "started_at", "completed_at"]),
         "bookings": own_rows(db, Booking, (Booking.mentee_id == user.id) | (Booking.mentor_id == user.id), ["id", "slot_id", "status", "meeting_url", "created_at"]),
         "results": own_rows(db, Result, Result.participation_id.in_(participation_ids), ["id", "participation_id", "status", "summary", "artifact_url", "completed_at"]),

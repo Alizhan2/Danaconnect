@@ -194,10 +194,17 @@ class Pilot:
             people = [("mentor_bookings", "mentor", self.args.clients),
                       ("mentor_capacity", "mentor", 3),
                       ("mentor_project", "mentor", self.args.clients),
-                      ("mentor_recurring", "mentor", self.args.clients)]
+                      ("mentor_recurring", "mentor", self.args.clients),
+                      ("mentor_offer_a", "mentor", self.args.clients),
+                      ("mentor_offer_b", "mentor", self.args.clients)]
             people += [(f"mentee_{i}", "mentee", 3) for i in range(self.args.clients)]
+            # Exercise sorted locking when BOTH competing mentor IDs sort before
+            # the shared owner. Random UUIDs could silently miss that lock order.
+            fixed_ids = {"mentor_offer_a": "00000000-0000-4000-8000-000000000001",
+                         "mentor_offer_b": "00000000-0000-4000-8000-000000000002",
+                         "mentee_0": "ffffffff-ffff-4fff-8fff-fffffffffff0"}
             for key, role, capacity in people:
-                user = User(email=key + "@synthetic-load.example.test", full_name="Synthetic " + key,
+                user = User(id=fixed_ids.get(key, str(uuid4())), email=key + "@synthetic-load.example.test", full_name="Synthetic " + key,
                             role=role, account_status="active", profile_completed=True,
                             intake_open=role == "mentor", capacity=capacity, timezone="UTC",
                             city="Synthetic city", organization="Synthetic workplace", phone="+7 700 000 00 00",
@@ -221,6 +228,22 @@ class Pilot:
             db.add(project)
             db.flush()
             self.ids["project"] = project.id
+            idea = Project(owner_id=self.ids["mentee_0"], direction_id=direction.id,
+                           title="Synthetic competing mentor offer idea",
+                           problem="Synthetic mentor selection concurrency test",
+                           description="A mentee idea with two independently offered mentors",
+                           capacity=2, visibility_status="published")
+            db.add(idea)
+            db.flush()
+            self.ids["mentor_offer_idea"] = idea.id
+            for key in ("mentor_offer_withdraw_idea", "mentor_offer_fresh_accept_idea", "mentor_offer_fresh_create_idea"):
+                idea = Project(owner_id=self.ids["mentee_0"], direction_id=direction.id,
+                               title="Synthetic " + key, problem="Synthetic bounded lock regression",
+                               description="A synthetic idea sharing the same mentee owner",
+                               capacity=2, visibility_status="published")
+                db.add(idea)
+                db.flush()
+                self.ids[key] = idea.id
             db.commit()
 
     def headers(self, actor: str) -> dict[str, str]:
@@ -278,10 +301,72 @@ class Pilot:
             raise PilotError(f"Synthetic setup failed at {method} {path}; status {sample['status']}")
         return sample["body"]
 
+    def blocking_graph(self):
+        """Read only this already-guarded disposable database's lock wait graph."""
+        from sqlalchemy import text
+        with self.engine.connect() as connection:
+            return list(connection.execute(text("""SELECT pid, pg_blocking_pids(pid)
+                FROM pg_stat_activity WHERE datname=current_database()
+                AND cardinality(pg_blocking_pids(pid)) > 0""")))
+
+    async def application_gate_race(self, client, name, application_id, first_job, second_job):
+        """Force API transactions to overlap before releasing one fixture row.
+
+        An external Application row lock pauses the first request after it
+        reaches its write. The second reaches the first request's users (or,
+        with the old withdrawal order, the same Application gate). Releasing
+        the gate exposes the old user/FK/Application lock cycles reliably.
+        Each observation is bounded to four seconds, below lock_timeout=10s.
+        """
+        from sqlalchemy import select, text
+        from app.models import Application
+
+        async def observe_blocked_by(identifiers):
+            deadline = asyncio.get_running_loop().time() + 4
+            while asyncio.get_running_loop().time() < deadline:
+                graph = await asyncio.to_thread(self.blocking_graph)
+                matched = [pid for pid, blockers in graph if set(blockers) & identifiers]
+                if matched:
+                    return matched[0]
+                await asyncio.sleep(0.025)
+            return None
+
+        tasks = []
+        started = time.perf_counter()
+        with self.factory() as gate:
+            gate.scalar(select(Application).where(Application.id == application_id).with_for_update())
+            gate_pid = gate.scalar(text("SELECT pg_backend_pid()"))
+            try:
+                tasks.append(asyncio.create_task(self.request(client, *first_job)))
+                first_pid = await observe_blocked_by({gate_pid})
+                self.check(name + ": first request reached the Application gate", first_pid is not None)
+                tasks.append(asyncio.create_task(self.request(client, *second_job)))
+                # Exclude the first request itself when observing a second waiter.
+                deadline = asyncio.get_running_loop().time() + 4
+                second_pid = None
+                while asyncio.get_running_loop().time() < deadline:
+                    graph = await asyncio.to_thread(self.blocking_graph)
+                    second_pid = next((pid for pid, blockers in graph
+                        if pid != first_pid and set(blockers) & {gate_pid, first_pid}), None)
+                    if second_pid is not None:
+                        break
+                    await asyncio.sleep(0.025)
+                self.check(name + ": second request overlapped the first transaction", second_pid is not None)
+            finally:
+                gate.rollback()
+        samples = await asyncio.gather(*tasks)
+        elapsed = time.perf_counter() - started
+        item = {"name": name, "overlap": "Application gate + observed PostgreSQL blocking graph",
+                **summarize(samples, elapsed)}
+        self.scenarios.append(item)
+        self.all_samples.extend(samples)
+        self.check(name + ": no transport/server errors", not item["transport_errors"] and not item["server_errors"])
+        return samples
+
     async def workloads(self, base_url):
         import httpx
         from sqlalchemy import func, select
-        from app.models import Application, Booking, Conversation, Participation, Slot
+        from app.models import Application, Booking, Conversation, ConversationMember, Participation, ProjectMember, Slot
         from app.models_calendar import GeneratedRuleSlot
         from app.models_delivery import EmailOutbox
         from app.project_capacity import project_occupied
@@ -366,6 +451,88 @@ class Pilot:
                     if project_id:
                         occupied = project_occupied(db, db.get(Project, project_id))
                         self.check("project shared seat invariant", occupied == 3, occupied=occupied)
+
+            # Distinct mentors and their shared mentee lock in sorted order. Two
+            # simultaneous owner decisions must assign only one of the offers.
+            idea_id = self.ids["mentor_offer_idea"]
+            offers = [await self.setup_request(client, "POST", f"/projects/{idea_id}/mentor-offers", actor,
+                      {"motivation": "Synthetic mentor offer for a mentee idea"})
+                      for actor in ("mentor_offer_a", "mentor_offer_b")]
+            accepted = await self.wave(client, "competing_mentor_offer_owner_accepts", [
+                ("POST", "/applications/" + item["id"] + "/decision", "mentee_0", {"decision": "accepted"})
+                for item in offers])
+            self.check("mentor offers: exactly one owner acceptance, other conflicts",
+                       sorted(row["status"] for row in accepted) == [200, 409])
+            with self.factory() as db:
+                rows = list(db.scalars(select(Application).where(Application.id.in_([item["id"] for item in offers]))))
+                participation_rows = list(db.scalars(select(Participation).where(Participation.project_id == idea_id)))
+                conversations = list(db.scalars(select(Conversation).join(Application,
+                    Application.id == Conversation.application_id).where(Application.project_id == idea_id)))
+                winner = next((row for row in rows if row.status == "accepted"), None)
+                loser = next((row for row in rows if row.status == "rejected"), None)
+                idea = db.get(Project, idea_id)
+                self.check("mentor offers: one accepted, competing offer closed",
+                           winner is not None and loser is not None and loser.rejection_reason == "project_closed")
+                self.check("mentor offers: one participation and one conversation",
+                           len(participation_rows) == len(conversations) == 1,
+                           participations=len(participation_rows), conversations=len(conversations))
+                self.check("mentor offers: idea and participation assign the accepted mentor",
+                           winner is not None and len(participation_rows) == 1
+                           and idea.mentor_id == participation_rows[0].mentor_id == winner.mentor_id
+                           and participation_rows[0].mentee_id == idea.owner_id)
+                if winner is not None and len(conversations) == 1:
+                    members = set(db.scalars(select(ConversationMember.user_id).where(
+                        ConversationMember.conversation_id == conversations[0].id)))
+                    team = set(db.scalars(select(ProjectMember.user_id).where(ProjectMember.project_id == idea_id)))
+                    self.check("mentor offers: only the accepted parties join chat and project",
+                               members == team == {winner.mentor_id, winner.mentee_id})
+
+            self.check("mentor lock order: competing mentors sort before shared owner",
+                       self.ids["mentor_offer_a"] < self.ids["mentor_offer_b"] < self.ids["mentee_0"])
+            withdraw_idea = self.ids["mentor_offer_withdraw_idea"]
+            withdraw_offer = await self.setup_request(client, "POST", f"/projects/{withdraw_idea}/mentor-offers",
+                "mentor_offer_a", {"motivation": "Synthetic withdrawal and acceptance race"})
+            races = await self.application_gate_race(client, "mentor_offer_accept_vs_withdraw", withdraw_offer["id"],
+                ("POST", f"/applications/{withdraw_offer['id']}/withdraw", "mentor_offer_a"),
+                ("POST", f"/applications/{withdraw_offer['id']}/decision", "mentee_0", {"decision": "accepted"}))
+            self.check("accept/withdraw: exactly one action succeeds", sorted(row["status"] for row in races) == [200, 409])
+            with self.factory() as db:
+                application = db.get(Application, withdraw_offer["id"])
+                count = db.scalar(select(func.count(Participation.id)).where(Participation.project_id == withdraw_idea))
+                conversations = db.scalar(select(func.count(Conversation.id)).where(Conversation.application_id == application.id))
+                members = db.scalar(select(func.count(ProjectMember.id)).where(ProjectMember.project_id == withdraw_idea))
+                self.check("accept/withdraw: status and matching records agree",
+                           (application.status == "withdrawn" and count == conversations == members == 0)
+                           or (application.status == "accepted" and count == conversations == 1 and members == 2),
+                           application_status=application.status, participations=count, conversations=conversations)
+
+            # The fresh offer targets a second idea by the SAME owner. Accepting
+            # the first idea closes the competing mentor's older pending offer,
+            # which inserts a notification FK while that mentor awaits the owner.
+            accept_idea, fresh_idea = self.ids["mentor_offer_fresh_accept_idea"], self.ids["mentor_offer_fresh_create_idea"]
+            accepted_offer = await self.setup_request(client, "POST", f"/projects/{accept_idea}/mentor-offers",
+                "mentor_offer_a", {"motivation": "Synthetic mentor selection with concurrent recruitment"})
+            competing_offer = await self.setup_request(client, "POST", f"/projects/{accept_idea}/mentor-offers",
+                "mentor_offer_b", {"motivation": "Synthetic competing mentor offer to close"})
+            fresh_races = await self.application_gate_race(client, "mentor_offer_accept_vs_fresh_offer", accepted_offer["id"],
+                ("POST", f"/applications/{accepted_offer['id']}/decision", "mentee_0", {"decision": "accepted"}),
+                ("POST", f"/projects/{fresh_idea}/mentor-offers", "mentor_offer_b",
+                 {"motivation": "Synthetic fresh offer sharing the idea owner"}))
+            self.check("accept/fresh offer: both independent actions finish", [row["status"] for row in fresh_races] == [200, 201])
+            with self.factory() as db:
+                winner, loser = db.get(Application, accepted_offer["id"]), db.get(Application, competing_offer["id"])
+                fresh_rows = list(db.scalars(select(Application).where(Application.project_id == fresh_idea)))
+                accepted_count = db.scalar(select(func.count(Participation.id)).where(Participation.project_id == accept_idea))
+                conversations = db.scalar(select(func.count(Conversation.id)).where(Conversation.application_id == winner.id))
+                self.check("accept/fresh offer: chosen idea has one accepted mentor and closed competitor",
+                           winner.status == "accepted" and loser.status == "rejected" and loser.rejection_reason == "project_closed"
+                           and db.get(Project, accept_idea).mentor_id == self.ids["mentor_offer_a"]
+                           and accepted_count == conversations == 1)
+                self.check("accept/fresh offer: other idea retains exactly one pending offer without matching",
+                           len(fresh_rows) == 1 and fresh_rows[0].status == "pending"
+                           and fresh_rows[0].mentor_id == self.ids["mentor_offer_b"]
+                           and db.get(Project, fresh_idea).mentor_id is None
+                           and db.scalar(select(func.count(Participation.id)).where(Participation.project_id == fresh_idea)) == 0)
 
             starts_on = (datetime.now(timezone.utc) + timedelta(days=1)).date()
             rule = await self.setup_request(client, "POST", "/availability-rules", "mentor_recurring", {
@@ -484,7 +651,7 @@ class Pilot:
             "authentication": "Synthetic persisted sessions; normal API authentication dependencies",
             "percentile_method": "nearest rank", "concurrent_http_clients": self.args.clients,
             "read_rounds": self.args.read_rounds, "calendar_workers": 4,
-            "fixture_users": self.args.clients + 4, "runtime": runtime,
+            "fixture_users": self.args.clients + 6, "runtime": runtime,
             "source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                               for name in source_files},
             "aggregate": summarize(self.all_samples, sum(s["elapsed_seconds"] for s in self.scenarios)),

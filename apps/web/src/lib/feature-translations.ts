@@ -2,12 +2,14 @@ import { collaborationTranslations } from "@/components/collaboration/translatio
 import { aiTranslations } from "@/components/ai-assistant/translations";
 import { notificationTranslations } from "@/components/notification-center/translations";
 import { registrationTranslations } from "./registration-translations";
+import { forumTranslations } from "./forum-translations";
 
 export const featureTranslations: Record<string, readonly [string, string]> = {
   ...collaborationTranslations,
   ...aiTranslations,
   ...notificationTranslations,
   ...registrationTranslations,
+  ...forumTranslations,
   Команда: ["Команда", "Team"],
   Материалы: ["Материалдар", "Resources"],
   Достижения: ["Жетістіктер", "Achievements"],

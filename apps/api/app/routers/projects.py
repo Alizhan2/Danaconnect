@@ -9,7 +9,7 @@ from app.profile_state import admitted_profile
 from app.project_access import project_is_public
 from app.database import get_db
 from app.models import Application, AuditEvent, Consent, Conversation, ConversationMember, Direction, Document, DocumentVersion, Message, Notification, Participation, ParticipationEvent, Project, ProjectMember, User
-from app.schemas.projects import ApplicationCreate, ApplicationDecision, MessageCreate, ProjectCreate, ProjectReview, ProjectUpdate
+from app.schemas.projects import ApplicationCreate, ApplicationDecision, MentorOfferCreate, MessageCreate, ProjectCreate, ProjectReview, ProjectUpdate
 
 
 router = APIRouter()
@@ -42,11 +42,19 @@ def public_project(db, project):
     return {"id": project.id, "owner_id": project.owner_id, "owner_name": owner.full_name if owner else "", "owner_role": owner.role if owner else "", "mentor_id": project.mentor_id, "mentor_name": mentor.full_name if mentor else None, "direction_id": project.direction_id, "direction_name": direction.name_ru if direction else "", "title": project.title, "problem": project.problem, "description": project.description, "stage": project.stage, "required_skills": project.required_skills or [], "capacity": project.capacity, "occupied": occupied, "available_places": max(0, project.capacity - occupied), "visibility_status": project.visibility_status, "created_at": project.created_at}
 
 
+def application_initiation(application):
+    """Shared ownership/decision metadata for the UI and personal data export."""
+    is_offer = application.initiator_role == "mentor"
+    return {"initiator_role": application.initiator_role,
+        "initiator_id": application.mentor_id if is_offer else application.mentee_id,
+        "decision_user_id": application.mentee_id if is_offer else application.mentor_id}
+
+
 def application_dict(db, application):
     mentor, mentee = db.get(User, application.mentor_id), db.get(User, application.mentee_id)
     project = db.get(Project, application.project_id) if application.project_id else None
     conversation_id = db.scalar(select(Conversation.id).where(Conversation.application_id == application.id))
-    return {"id": application.id, "project_id": application.project_id, "mentee_id": application.mentee_id, "mentor_id": application.mentor_id, "motivation": application.motivation, "status": application.status, "rejection_reason": application.rejection_reason, "created_at": application.created_at, "mentor_name": mentor.full_name if mentor else "", "mentee_name": mentee.full_name if mentee else "", "project_title": project.title if project else None, "conversation_id": conversation_id}
+    return {"id": application.id, "project_id": application.project_id, "mentee_id": application.mentee_id, "mentor_id": application.mentor_id, **application_initiation(application), "motivation": application.motivation, "status": application.status, "rejection_reason": application.rejection_reason, "created_at": application.created_at, "mentor_name": mentor.full_name if mentor else "", "mentee_name": mentee.full_name if mentee else "", "project_title": project.title if project else None, "conversation_id": conversation_id}
 
 
 def participant_dict(db, participation):
@@ -79,13 +87,14 @@ def ensure_user_enrolled(db, user, role):
 
 
 def lock_mentor(db, mentor_id):
-    """Writes acquire SQLite's writer lock; FOR UPDATE supplies PostgreSQL row lock.
+    """Writes acquire SQLite's writer lock; PostgreSQL uses NO KEY UPDATE.
 
     Capacity counts occur only AFTER these locks, inside the same transaction.
     The no-op write is intentional: SELECT FOR UPDATE has no effect in SQLite.
     """
     if db.get_bind().dialect.name != "sqlite":
-        db.scalar(select(User).where(User.id == mentor_id).with_for_update())
+        db.scalar(select(User).where(User.id == mentor_id)
+            .with_for_update(key_share=db.get_bind().dialect.name == "postgresql"))
     acquired = db.execute(update(User).where(User.id == mentor_id, User.role == "mentor", User.account_status == "active", User.profile_completed.is_(True), User.intake_open.is_(True), User.capacity > 0).values(capacity=User.capacity).execution_options(synchronize_session=False))
     if acquired.rowcount != 1:
         db.rollback()
@@ -132,12 +141,16 @@ def validate_match(db, project, mentee, mentor):
 
 
 @router.get("/projects")
-def projects(direction_id: str | None = None, stage: str | None = None, q: str | None = Query(None, max_length=200), limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db)):
+def projects(direction_id: str | None = None, stage: str | None = None, q: str | None = Query(None, max_length=200), kind: str | None = Query(None, pattern=r"^(ideas|projects)$"), limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db)):
     query = select(Project, User).join(Direction, Direction.id == Project.direction_id).join(User, User.id == Project.owner_id).where(Project.visibility_status == "published", Direction.active.is_(True), User.account_status == "active", User.profile_completed.is_(True), User.role.in_(["mentor", "mentee"]))
     if direction_id:
         query = query.where(Project.direction_id == direction_id)
     if stage:
         query = query.where(Project.stage == stage)
+    if kind == "ideas":
+        query = query.where(User.role == "mentee", Project.mentor_id.is_(None))
+    elif kind == "projects":
+        query = query.where(Project.mentor_id.is_not(None))
     if q:
         query = query.where(or_(Project.title.icontains(q, autoescape=True), Project.problem.icontains(q, autoescape=True)))
     rows = db.execute(query.order_by(Project.created_at.desc(), Project.id).execution_options(yield_per=100))
@@ -299,8 +312,11 @@ def review_project(project_id: str, payload: ProjectReview, user: User = Depends
 
 
 @router.get("/applications")
-def applications(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), user: User = Depends(require_active), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Application).where(or_(Application.mentee_id == user.id, Application.mentor_id == user.id)).order_by(Application.created_at.desc(), Application.id).limit(limit).offset(offset)).all()
+def applications(project_id: str | None = Query(None, min_length=1, max_length=36), limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), user: User = Depends(require_active), db: Session = Depends(get_db)):
+    statement = select(Application).where(or_(Application.mentee_id == user.id, Application.mentor_id == user.id))
+    if project_id:
+        statement = statement.where(Application.project_id == project_id)
+    rows = db.scalars(statement.order_by(Application.created_at.desc(), Application.id).limit(limit).offset(offset)).all()
     return [application_dict(db, application) for application in rows]
 
 
@@ -321,7 +337,7 @@ def create_application(payload: ApplicationCreate, user: User = Depends(require_
     if db.scalar(duplicate.limit(1)):
         db.rollback()
         raise HTTPException(409, "Активное участие уже существует")
-    application = Application(**payload.model_dump(), mentee_id=user.id, status="pending")
+    application = Application(**payload.model_dump(), mentee_id=user.id, initiator_role="mentee", status="pending")
     db.add(application)
     try:
         db.flush()
@@ -334,30 +350,78 @@ def create_application(payload: ApplicationCreate, user: User = Depends(require_
     return application_dict(db, application)
 
 
+@router.post("/projects/{project_id}/mentor-offers", status_code=201)
+def create_mentor_offer(project_id: str, payload: MentorOfferCreate, user: User = Depends(require_active), db: Session = Depends(get_db)):
+    from app.services.action_limits import enforce_action_limit
+    from app.transactions import lock_users
+    if user.role != "mentor":
+        raise HTTPException(403, "Предложить менторство может только ментор")
+    idea = db.get(Project, project_id)
+    if idea is None:
+        raise HTTPException(404, "Идея не найдена")
+    actor_id, owner_id = user.id, idea.owner_id
+    people = lock_users(db, [actor_id, owner_id])
+    user, owner = people[actor_id], people[owner_id]
+    ensure_user_enrolled(db, user, "mentor")
+    idea = db.get(Project, project_id, populate_existing=True)
+    if idea is None or idea.owner_id != owner_id or not project_is_public(db, idea, owner=owner):
+        raise HTTPException(404, "Идея недоступна")
+    if owner.role != "mentee" or idea.mentor_id is not None:
+        raise HTTPException(409, "Предложение доступно для идеи менти без назначенного ментора")
+    ensure_user_enrolled(db, owner, "mentee")
+    mentor = lock_mentor(db, actor_id)
+    idea = lock_project(db, project_id, owner_id)
+    # Owner serialization precedes the project lock; another offer acceptance
+    # cannot assign a different mentor between these checks and the commit.
+    if idea.mentor_id is not None:
+        raise HTTPException(409, "В идее уже назначен ментор")
+    validate_match(db, idea, owner, mentor)
+    if db.scalar(select(Participation.id).where(Participation.project_id == idea.id, Participation.mentee_id == owner.id, Participation.status.in_(ONGOING)).limit(1)):
+        raise HTTPException(409, "Активное участие уже существует")
+    enforce_action_limit(db, actor_id, "mentor_offer.created")
+    application = Application(project_id=idea.id, mentee_id=owner.id, mentor_id=mentor.id,
+        motivation=payload.motivation, initiator_role="mentor", status="pending")
+    db.add(application)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Предложение уже ожидает решения") from None
+    notify(db, owner.id, "mentor_offer", "Ментор предложил помощь с вашей идеей", mentor.full_name)
+    audit(db, user, "mentor_offer.created", "application", application.id, {"project_id": idea.id})
+    commit(db)
+    return application_dict(db, application)
+
+
 @router.post("/applications/{application_id}/decision")
 def decide_application(application_id: str, payload: ApplicationDecision, user: User = Depends(require_active), db: Session = Depends(get_db)):
     application = db.get(Application, application_id)
-    if application is None or application.mentor_id != user.id or user.role != "mentor":
+    if application is None:
+        raise HTTPException(404, "Входящая заявка не найдена")
+    is_offer = application.initiator_role == "mentor"
+    decision_id = application.mentee_id if is_offer else application.mentor_id
+    decision_role = "mentee" if is_offer else "mentor"
+    if decision_id != user.id or user.role != decision_role:
         raise HTTPException(404, "Входящая заявка не найдена")
     from app.transactions import lock_users
-    actor_id, mentee_id = user.id, application.mentee_id
-    people = lock_users(db, [actor_id, mentee_id])
+    actor_id, mentee_id, mentor_id = user.id, application.mentee_id, application.mentor_id
+    people = lock_users(db, [mentee_id, mentor_id])
     user = people[actor_id]
     application = db.get(Application, application_id, populate_existing=True)
-    if user.role != "mentor" or user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
-        raise HTTPException(403, "Ментор должен иметь одобренную анкету и актуальные согласия")
-    if application is None or application.mentor_id != user.id or application.mentee_id != mentee_id:
+    if user.role != decision_role or user.account_status != "active" or not admitted_profile(user) or not has_current_consents(db, user):
+        raise HTTPException(403, "Для решения нужны одобренная анкета и актуальные согласия")
+    if application is None or application.mentor_id != mentor_id or application.mentee_id != mentee_id or (application.initiator_role == "mentor") != is_offer:
         raise HTTPException(404, "Входящая заявка не найдена")
     if payload.decision == "rejected":
-        changed = db.execute(update(Application).where(Application.id == application_id, Application.mentor_id == user.id, Application.status == "pending").values(status="rejected", rejection_reason=payload.reason))
+        changed = db.execute(update(Application).where(Application.id == application_id, Application.status == "pending").values(status="rejected", rejection_reason=payload.reason))
         if changed.rowcount != 1:
             db.rollback()
             raise HTTPException(409, "По заявке уже принято решение")
-        notify(db, application.mentee_id, "application_decision", "Заявка отклонена", payload.reason)
+        notify(db, mentor_id if is_offer else mentee_id, "application_decision", "Предложение менторства отклонено" if is_offer else "Заявка отклонена", payload.reason)
         audit(db, user, "application.rejected", "application", application.id, {"reason": payload.reason})
         commit(db)
         return application_dict(db, application)
-    mentor = lock_mentor(db, user.id)
+    mentor = lock_mentor(db, mentor_id)
     project = lock_project(db, application.project_id, application.mentee_id) if application.project_id else None
     # A stale object from dependency reads must not bypass a concurrent withdrawal.
     db.refresh(application)
@@ -367,6 +431,8 @@ def decide_application(application_id: str, payload: ApplicationDecision, user: 
     mentee = db.get(User, application.mentee_id)
     db.refresh(mentee)
     ensure_user_enrolled(db, mentee, "mentee")
+    if is_offer and (project is None or project.owner_id != mentee.id or project.mentor_id is not None):
+        raise HTTPException(409, "Идея уже закреплена за ментором или недоступна")
     validate_match(db, project, mentee, mentor)
     changed = db.execute(update(Application).where(Application.id == application.id, Application.status == "pending").values(status="accepted"))
     if changed.rowcount != 1:
@@ -374,6 +440,16 @@ def decide_application(application_id: str, payload: ApplicationDecision, user: 
         raise HTTPException(409, "По заявке уже принято решение")
     if project and project.mentor_id is None:
         project.mentor_id = mentor.id
+        # Selection closes incompatible pending requests for this idea. The
+        # project owner lock serializes competing offers and its acceptances.
+        competing = db.scalars(select(Application).where(Application.project_id == project.id,
+            Application.id != application.id, Application.mentor_id != mentor.id,
+            Application.status == "pending").with_for_update()).all()
+        for other in competing:
+            other.status, other.rejection_reason = "rejected", "project_closed"
+            recipient = other.mentor_id if other.initiator_role == "mentor" else other.mentee_id
+            notify(db, recipient, "application_decision", "Для идеи выбран другой ментор", project.title)
+            audit(db, user, "application.closed_after_mentor_selection", "application", other.id, {"selected_application_id": application.id})
     participation = Participation(project_id=application.project_id, mentee_id=mentee.id, mentor_id=mentor.id, status="active")
     db.add(participation)
     try:
@@ -388,8 +464,8 @@ def decide_application(application_id: str, payload: ApplicationDecision, user: 
         db.add(conversation)
         db.flush()
         db.add_all([ConversationMember(conversation_id=conversation.id, user_id=mentee.id), ConversationMember(conversation_id=conversation.id, user_id=mentor.id)])
-        notify(db, mentee.id, "application_decision", "Ментор принял заявку", "Участие создано. Можно обсудить встречу в сообщениях")
-        notify(db, mentor.id, "participation", "Новое участие создано", mentee.full_name)
+        notify(db, mentee.id, "application_decision", "Предложение менторства принято" if is_offer else "Ментор принял заявку", "Участие создано. Можно обсудить встречу в сообщениях")
+        notify(db, mentor.id, "participation", "Автор идеи принял ваше предложение" if is_offer else "Новое участие создано", mentee.full_name)
         audit(db, user, "application.accepted", "application", application.id, {"participation_id": participation.id, "conversation_id": conversation.id})
         commit(db)
     except IntegrityError:
@@ -402,12 +478,29 @@ def decide_application(application_id: str, payload: ApplicationDecision, user: 
 
 @router.post("/applications/{application_id}/withdraw")
 def withdraw_application(application_id: str, user: User = Depends(require_active), db: Session = Depends(get_db)):
-    changed = db.execute(update(Application).where(Application.id == application_id, Application.mentee_id == user.id, Application.status == "pending").values(status="withdrawn"))
+    from app.transactions import lock_users
+    application = db.get(Application, application_id)
+    actor_id = user.id
+    if application is None or (application.mentor_id if application.initiator_role == "mentor" else application.mentee_id) != actor_id:
+        raise HTTPException(409, "Можно отозвать только собственную заявку, ожидающую решения")
+    mentee_id, mentor_id, initiator_role = application.mentee_id, application.mentor_id, application.initiator_role
+    # Acceptance and withdrawal both acquire sorted user rows before changing
+    # the application. Never hold its row while waiting for a participant FK.
+    user = lock_users(db, [mentee_id, mentor_id])[actor_id]
+    require_active(user, db)
+    application = db.get(Application, application_id, populate_existing=True)
+    if application is None or application.mentee_id != mentee_id or application.mentor_id != mentor_id or application.initiator_role != initiator_role:
+        raise HTTPException(409, "Можно отозвать только собственную заявку, ожидающую решения")
+    changed = db.execute(update(Application).where(Application.id == application_id, Application.status == "pending",
+        Application.mentee_id == mentee_id, Application.mentor_id == mentor_id, Application.initiator_role == initiator_role,
+        or_((Application.initiator_role == "mentee") & (Application.mentee_id == user.id),
+            (Application.initiator_role == "mentor") & (Application.mentor_id == user.id))).values(status="withdrawn"))
     if changed.rowcount != 1:
         db.rollback()
         raise HTTPException(409, "Можно отозвать только собственную заявку, ожидающую решения")
     application = db.get(Application, application_id)
-    notify(db, application.mentor_id, "application_withdrawn", "Заявка отозвана")
+    is_offer = application.initiator_role == "mentor"
+    notify(db, application.mentee_id if is_offer else application.mentor_id, "application_withdrawn", "Предложение менторства отозвано" if is_offer else "Заявка отозвана")
     audit(db, user, "application.withdrawn", "application", application_id)
     commit(db)
     return application_dict(db, application)

@@ -17,7 +17,7 @@ def notification_href(kind):
     # Stored bodies are participant text; never interpret them as navigation URLs.
     if kind.startswith("booking_") or kind == "booking_link":
         return "/calendar"
-    return {"registration": "/onboarding", "application": "/dashboard",
+    return {"registration": "/onboarding", "application": "/dashboard", "mentor_offer": "/dashboard",
         "application_decision": "/dashboard", "application_withdrawn": "/dashboard",
         "participation": "/dashboard", "project_review": "/projects",
         "team_invitation": "/team", "message": "/messages",
@@ -111,8 +111,7 @@ def next_steps(user: User = Depends(get_current_user), db: Session = Depends(get
             add("review", "Дождитесь проверки анкеты", "Анкета ожидает решения команды. Решение появится в уведомлениях и профиле.", "/onboarding")
         if user.account_status == "active" and admitted_profile(user) and consents_current:
             if pending_applications:
-                add("applications", "Проверьте заявки", "В рабочем пространстве есть заявки, ожидающие решения." if user.role == "mentor" else
-                    "Ваши заявки ожидают решения ментора. Статус доступен в рабочем пространстве.", "/dashboard")
+                add("applications", "Проверьте заявки", "Проверьте входящие предложения и статус отправленных заявок в кабинете.", "/dashboard")
             if user.role == "mentee" and not ongoing and not pending_applications:
                 add("mentor", "Найдите ментора", "Выберите ментора в каталоге и отправьте заявку с описанием цели.", "/catalog")
             if user.role == "mentor" and not user.intake_open:
