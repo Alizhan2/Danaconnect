@@ -11,6 +11,7 @@ export function BrandLogo({ preload = false, secondary = false }: { preload?: bo
         height={88}
         sizes="88px"
         preload={preload}
+        unoptimized
       />
       {secondary && <span className="brand-secondary">
         <Image className="brand-logo" src="/brand/danaconnect-logo.jpg" alt="DanaConnect" width={640} height={640} unoptimized />
