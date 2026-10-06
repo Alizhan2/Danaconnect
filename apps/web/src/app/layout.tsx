@@ -20,11 +20,11 @@ const poppins = Poppins({
 });
 export const metadata: Metadata = {
   title: {
-    default: "Менторская платформа Women In Tech Kazakhstan & DANA Connect",
-    template: "%s · Women In Tech Kazakhstan & DANA Connect",
+    default: "Менторская платформа Women in Tech Kazakhstan & DANA Connect",
+    template: "%s · Women in Tech Kazakhstan & DANA Connect",
   },
   description:
-    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
+    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan и DANA Connect объединяют участников и экспертов и помогают достигать измеримых результатов.",
 };
 export default function RootLayout({
   children,

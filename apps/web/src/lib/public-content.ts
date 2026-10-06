@@ -1,8 +1,8 @@
 export const publicContent = {
   ru: {
-    name: "Менторская платформа Women In Tech Kazakhstan & DANA Connect",
+    name: "Менторская платформа Women in Tech Kazakhstan & DANA Connect",
     headline: "Превращайте идеи в реальные проекты вместе с менторами",
-    description: "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
+    description: "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan и DANA Connect объединяют участников и экспертов и помогают достигать измеримых результатов.",
     findMentor: "Найти ментора", projects: "Смотреть проекты", mentors: "Менторы", participants: "Участники", projectsLabel: "Проекты",
     statsTitle: "Наше сообщество в цифрах", statsNote: "Участники — одобренные менторы и менти с заполненными анкетами и актуальными согласиями. Менторы входят в число участников. Проекты включают опубликованные идеи, доступные в каталоге.",
     statsError: "Не удалось загрузить показатели.", demoStats: "Демонстрационные данные", retry: "Повторить", loading: "Загружаем показатели…",
@@ -20,9 +20,9 @@ export const publicContent = {
     resultsTitle: "Делитесь тем, что получилось", resultsText: "Завершённая работа — основа следующего шага. В витрине можно познакомиться с опубликованными результатами участников.", resultsAction: "Посмотреть результаты",
   },
   kk: {
-    name: "Women In Tech Kazakhstan & DANA Connect менторлық платформасы",
+    name: "Women in Tech Kazakhstan & DANA Connect менторлық платформасы",
     headline: "Идеяларды менторлармен бірге нақты жобаларға айналдырыңыз",
-    description: "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
+    description: "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan мен DANA Connect қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
     findMentor: "Ментор табу", projects: "Жобаларды көру", mentors: "Менторлар", participants: "Қатысушылар", projectsLabel: "Жобалар",
     statsTitle: "Қауымдастық сандармен", statsNote: "Қатысушылар — сауалнамаларын толтырып, қолданыстағы келісімдерді қабылдаған, мақұлданған менторлар мен ментилер. Менторлар қатысушылар санына кіреді. Жобалар санына каталогтағы жарияланған идеялар да кіреді.",
     statsError: "Көрсеткіштерді жүктеу мүмкін болмады.", demoStats: "Демонстрациялық деректер", retry: "Қайталау", loading: "Көрсеткіштер жүктелуде…",
@@ -40,9 +40,9 @@ export const publicContent = {
     resultsTitle: "Нәтижеңізбен бөлісіңіз", resultsText: "Аяқталған жұмыс — келесі қадамның негізі. Витринада қатысушылардың жарияланған нәтижелерімен танысуға болады.", resultsAction: "Нәтижелерді көру",
   },
   en: {
-    name: "Women In Tech Kazakhstan & DANA Connect Mentoring Platform",
+    name: "Women in Tech Kazakhstan & DANA Connect Mentoring Platform",
     headline: "Turn Ideas into Real Projects with the support of Mentors",
-    description: "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan connects participants and experts and helps them achieve measurable results.",
+    description: "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan and DANA Connect connect participants and experts and help them achieve measurable results.",
     findMentor: "Find a Mentor", projects: "Explore Projects", mentors: "Mentors", participants: "Participants", projectsLabel: "Projects",
     statsTitle: "Our community in numbers", statsNote: "Participants are approved mentors and mentees with completed profiles and current consents. Mentors are included in participants. Projects include published ideas available in the catalogue.",
     statsError: "The numbers could not be loaded.", demoStats: "Demonstration data", retry: "Try again", loading: "Loading numbers…",
