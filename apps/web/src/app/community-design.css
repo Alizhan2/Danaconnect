@@ -1,0 +1,148 @@
+/* Public community surfaces: readable type, compact navigation and varied composition. */
+.header .header-inner{gap:4px 24px;padding-top:10px}
+.header .wordmark{flex-direction:row;align-items:center;gap:18px;max-width:470px}
+.header .wordmark .brand-marks{gap:12px;flex-shrink:0}
+.header .wordmark .wit-brand-logo{width:64px;height:64px}
+.header .wordmark .brand-secondary .brand-logo{width:94px;height:30px}
+.header .wordmark .brand-platform-name{font-size:12px;line-height:1.5;max-width:245px}
+.header .desktop-nav{border-top:0;justify-content:flex-start;gap:32px;padding-block:0}
+.header .desktop-nav a{font-size:14px}
+.header .button{border-radius:999px;font-size:13px}
+.public-content .button{min-height:46px;border-radius:999px;font-size:14px;padding:12px 22px;white-space:normal;text-align:center}
+.public-content .page-heading{padding-block:40px 24px}
+.public-content .page-heading h1{font-size:clamp(30px,3.5vw,44px);line-height:1.2;margin-bottom:16px}
+.public-content .page-heading>.muted{font-size:16px;max-width:760px;line-height:1.75}
+.public-content .panel{border-radius:24px;border-color:#0300390d;box-shadow:0 4px 28px #03003903}
+.public-content .panel p,.public-content .panel li{font-size:15px;line-height:1.8}
+.public-content .panel h2{font-size:26px;line-height:1.3}
+.public-content .panel h3{font-size:21px;line-height:1.4}
+.public-content .badge{font-size:12px;border-radius:999px;overflow-wrap:anywhere}
+.public-content input:not([type=checkbox]):not([type=radio]),.public-content select,.public-content textarea{font-size:16px;border-radius:12px;min-height:48px}
+.public-content .field-label,.public-content label{font-size:14px;line-height:1.6}
+.public-content .field-hint,.public-content .check-row{font-size:13px;line-height:1.7}
+.public-content .notice{border-radius:16px;font-size:14px;line-height:1.75}
+.public-content .empty-state{border:0;border-radius:24px;background:#f3f3fa;padding:40px 24px}
+.public-content .empty-state p{font-size:15px;line-height:1.7}
+
+/* A catalogue is a working surface: keep the introduction short. */
+.discovery-intro-inner{align-items:flex-start;text-align:left;padding-block:32px;gap:0}
+.discovery-intro-copy{max-width:850px}
+.discovery-intro h1{font-size:clamp(28px,3vw,38px);margin:10px 0 14px}
+.discovery-intro .eyebrow{margin-bottom:0;font-size:12px}
+.discovery-lead{margin:0;max-width:760px;font-size:16px;line-height:1.7}
+.discovery-content{padding-top:28px}
+.discovery-direction-filter button,.discovery-checkbox,.discovery-reset{font-size:14px}
+.discovery-person h3{font-size:21px}
+.discovery-person-copy>p{font-size:14px;line-height:1.55}
+.discovery-location{font-size:12px;color:#626379}
+.discovery-card-body p{font-size:15px;line-height:1.75;color:#626379}
+.discovery-topics>span{font-size:12px;color:#575970}
+.discovery-details dt{font-size:12px;color:#626379}
+.discovery-details dd{font-size:14px;color:#383a57}
+.discovery-status{font-size:12px;color:#626379}
+.discovery-status-open{color:#376546}
+.discovery-card-status{flex-wrap:wrap}
+.discovery-card-status .badge{font-size:11px}
+.discovery-results-heading h2{font-size:25px}
+.discovery-results-heading>p,.discovery-demo-invite p,.discovery-content .demo-banner p{font-size:14px}
+.discovery-demo-invite h2{font-size:22px}
+.discovery-card{gap:18px}
+.discovery-person{align-items:flex-start}
+.discovery-avatar{width:56px;height:56px;font-size:18px}
+
+/* Editorial project rows put the problem and author before secondary details. */
+.projects-directory{padding-top:40px}
+.projects-heading{display:flex;align-items:center;justify-content:space-between;gap:32px;margin-bottom:30px}
+.projects-heading>div{max-width:780px;min-width:0}
+.projects-heading h1{font-size:clamp(30px,3.5vw,44px);margin-bottom:16px}
+.projects-heading p:not(.eyebrow){color:var(--muted);font-size:16px;margin:0;line-height:1.75}
+.projects-heading>.button{flex-shrink:0;max-width:260px}
+.project-kind-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.project-kind-filter button{border:1px solid transparent;border-radius:999px;background:#efeff7;color:var(--ink);padding:11px 20px;font-size:14px;min-height:46px}
+.project-kind-filter button[aria-pressed=true]{background:var(--blue);color:white}
+.project-kind-help{font-size:14px;color:var(--muted);max-width:780px}
+.projects-directory .filters{background:transparent;border:0;padding:0;margin-bottom:28px;gap:12px;box-shadow:none}
+.projects-directory .filters input{flex:2;min-width:0;background:white}
+.projects-directory .filters select{flex:1;max-width:260px;background:white}
+.project-list{display:grid;gap:0;background:white;border-radius:24px;padding:0 30px}
+.project-entry{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:36px;padding:30px 0;border-bottom:1px solid var(--line)}
+.project-entry:last-child{border-bottom:0}
+.project-entry h2{font-size:25px;line-height:1.35;margin:16px 0 12px;overflow-wrap:anywhere}
+.project-entry p{font-size:15px;color:var(--muted);line-height:1.75;overflow-wrap:anywhere}
+.project-entry-main>p:first-of-type{color:var(--ink)}
+.project-entry-action{display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.project-entry-action p{font-size:13px}
+
+/* Mentor profiles share the catalogue's light surfaces. */
+.public-content .profile-hero{background:linear-gradient(110deg,#f2f2fd,#fafae6);color:var(--ink);border-radius:28px;padding:38px;gap:26px}
+.public-content .profile-hero h1{color:var(--ink);font-size:clamp(28px,3.5vw,42px);overflow-wrap:anywhere}
+.public-content .profile-hero p{color:#555675;font-size:15px}
+.public-content .profile-hero .eyebrow{color:var(--blue)!important;font-size:12px}
+.public-content .profile-hero .avatar-large{border-radius:50%;background:white;color:var(--blue);flex-shrink:0}
+.public-content .profile-hero .demo-profile-title{color:var(--ink)!important;font-size:18px!important}
+.public-content .profile-grid{gap:28px;margin-top:28px;align-items:start}
+.public-content .profile-grid .panel{padding:30px}
+.public-content .detail-list dt{font-size:13px;color:var(--muted)}
+.public-content .detail-list dd{font-size:15px;overflow-wrap:anywhere}
+.public-content .demo-profile-help{font-size:15px;line-height:1.8}
+.public-content .demo-form{max-width:800px;margin-top:28px}
+
+.registration-page{max-width:1060px}
+.registration-page.narrow{max-width:860px}
+.registration-roles{gap:28px}
+.registration-roles .panel{display:flex;flex-direction:column;align-items:flex-start;padding:36px;border:0;background:#efeffb}
+.registration-roles .panel:nth-child(2){background:#fafae6}
+.registration-roles .panel .eyebrow{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:white;font-size:14px;letter-spacing:0}
+.registration-roles .panel .button{margin-top:auto}
+.registration-page .form-grid{gap:24px}
+.registration-page fieldset{border-radius:16px;padding:20px;min-width:0}
+.registration-page legend{font-size:18px;font-weight:600;padding-inline:8px}
+.registration-page .panel{padding:30px}
+.registration-page ol{padding-left:22px;display:grid;gap:12px}
+.wit-home-path .step-card p,.wit-home-directions .direction-card p{font-size:15px;line-height:1.8}
+.wit-info-card{border-radius:24px;border-color:#0300390d}
+
+@media(max-width:1150px){
+ .header .header-inner{padding:10px 28px;gap:12px}
+ .header .wordmark{max-width:430px}
+ .header .wordmark .brand-platform-name{max-width:220px}
+}
+@media(max-width:850px){
+ .header .wordmark{flex-direction:column;gap:4px;align-items:flex-start}
+ .header .wordmark .brand-platform-name{max-width:320px}
+ .projects-heading{align-items:flex-start;flex-direction:column;gap:20px}
+ .project-entry{grid-template-columns:1fr;gap:16px}
+ .project-entry-action{flex-direction:row;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+ .project-entry-action p{margin:0}
+}
+@media(max-width:760px){
+ .header .header-inner{padding:10px 22px;gap:8px}
+ .header .wordmark{flex-direction:row;gap:14px;align-items:center;max-width:100%}
+ .header .wordmark .wit-brand-logo{width:56px;height:56px}
+ .header .wordmark .brand-marks{gap:8px}
+ .header .wordmark .brand-secondary .brand-logo{width:82px;height:26px}
+ .header .wordmark .brand-platform-name{font-size:11px;max-width:220px}
+ .header .header-actions{gap:6px;flex-wrap:nowrap}
+ .header .locale-select{min-width:44px;width:44px;flex-shrink:0}
+ .header .header-signin,.header .header-get-started{padding-inline:12px;font-size:12px;white-space:normal}
+ .header .mobile-menu-button{flex-shrink:0}
+ .public-content .page-heading{padding-block:30px 20px}
+ .discovery-intro-inner{padding-block:26px}
+ .discovery-lead{font-size:15px}
+ .discovery-intro h1{font-size:29px}
+ .discovery-person h3{font-size:21px}
+ .discovery-results-heading>p{font-size:12px}
+ .projects-directory{padding-top:30px}
+ .projects-directory .filters select{max-width:none;width:100%}
+ .project-kind-filter button{font-size:13px;padding:10px 15px}
+ .project-list{padding-inline:22px}
+ .public-content .profile-hero{padding:26px}
+ .public-content .profile-grid .panel,.registration-page .panel{padding:24px}
+ .registration-page .form-grid{gap:20px}
+ .registration-page fieldset{padding:16px}
+}
+@media(max-width:360px){
+ .header .wordmark .brand-platform-name{font-size:10px}
+ .header .wordmark{gap:8px}
+ .header .wordmark .brand-secondary .brand-logo{width:70px;height:24px}
+}

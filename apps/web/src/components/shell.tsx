@@ -232,7 +232,7 @@ export function AppShell({
           </main>
         </div>
       ) : (
-        <main id="main-content">
+        <main id="main-content" className="public-content">
           {title && (
             <div className="container page-heading">
               <p className="eyebrow">{tr("Сообщество")}</p>

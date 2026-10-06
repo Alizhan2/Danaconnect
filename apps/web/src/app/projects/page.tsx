@@ -3,7 +3,7 @@ import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Project, Direction, User } from "@/lib/types";
 import { AppShell } from "@/components/shell";
-import { Badge, Button, EmptyState, SectionHeading } from "@/components/ui";
+import { Badge, Button, EmptyState } from "@/components/ui";
 import { useLocale } from "@/lib/i18n";
 import { LoadState, statusText, useLoad } from "@/components/workflows/common";
 export default function ProjectsPage() {
@@ -34,20 +34,16 @@ export default function ProjectsPage() {
   const canCreate = user?.account_status === "active" && ["mentor", "mentee"].includes(user.role);
   return (
     <AppShell
-      title={t.projects}
-      description={tr(
-        "Обсуждайте проекты, предлагайте идеи и находите команду для совместной работы.",
-      )}
     >
-      <div className="container page-content">
-        <SectionHeading
-          title={tr("Проекты и идеи сообщества")}
-          action={(!user || ["mentor", "mentee", "unchosen"].includes(user.role)) && <Button href={canCreate ? "/projects/new" : user ? "/onboarding" : "/register"}>{tr(user?.role === "mentee" ? "Предложить идею" : "Создать проект")}</Button>}
-        />
-        <div className="grid-2" style={{ marginBottom: 24 }}>
-          <article className="card"><h3>{tr("Проекты менторов")}</h3><p>{tr("Выберите проект, обсудите задачу и отправьте заявку на свободное место.")}</p></article>
-          <article className="card"><h3>{tr("Идеи менти")}</h3><p>{tr("Предложите свою идею. Ментор может предложить поддержку, а автор идеи выбирает наставника.")}</p></article>
+      <div className="container page-content projects-directory">
+        <div className="projects-heading">
+          <div><p className="eyebrow">{tr("Сообщество")}</p><h1>{tr("Проекты и идеи сообщества")}</h1><p>{tr("Обсуждайте проекты, предлагайте идеи и находите команду для совместной работы.")}</p></div>
+          {(!user || ["mentor", "mentee", "unchosen"].includes(user.role)) && <Button href={canCreate ? "/projects/new" : user ? "/onboarding" : "/register"}>{tr(user?.role === "mentee" ? "Предложить идею" : "Создать проект")}</Button>}
         </div>
+        <div className="project-kind-filter" role="group" aria-label={tr("Тип публикации")}>
+          {[["", "Все проекты и идеи"], ["ideas", "Идеи ищут ментора"], ["projects", "Проекты с ментором"]].map(([value, label]) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => setKind(value)}>{tr(label)}</button>)}
+        </div>
+        {kind && <p className="project-kind-help">{tr(kind === "ideas" ? "Предложите свою идею. Ментор может предложить поддержку, а автор идеи выбирает наставника." : "Выберите проект, обсудите задачу и отправьте заявку на свободное место.")}</p>}
         <div className="filters">
           <input
             aria-label={tr("Поиск проектов")}
@@ -78,11 +74,6 @@ export default function ProjectsPage() {
             <option value="mvp">MVP</option>
             <option value="growth">{tr("Развитие")}</option>
           </select>
-          <select aria-label={tr("Тип публикации")} value={kind} onChange={(e) => setKind(e.target.value)}>
-            <option value="">{tr("Все проекты и идеи")}</option>
-            <option value="ideas">{tr("Идеи ищут ментора")}</option>
-            <option value="projects">{tr("Проекты с ментором")}</option>
-          </select>
         </div>
         <LoadState {...load} retry={load.reload}>
           {!projects.length ? (
@@ -91,9 +82,10 @@ export default function ProjectsPage() {
               description={tr("Измените фильтры или предложите свой проект.")}
             />
           ) : (
-            <div className="cards-grid">
+            <div className="project-list">
               {projects.map((project) => (
-                <article className="card stack" key={project.id}>
+                <article className="project-entry" key={project.id}>
+                  <div className="project-entry-main">
                   <div className="tags">
                     <Badge tone="blue">{tr(statusText(project.stage))}</Badge>
                     <Badge>{tr(project.owner_role === "mentee" && !project.mentor_id ? "Идея ищет ментора" : "Проект с ментором")}</Badge>
@@ -103,7 +95,7 @@ export default function ProjectsPage() {
                       )?.[`name_${locale}`] || tr("Направление")}
                     </Badge>
                   </div>
-                  <h3>{project.title}</h3>
+                  <h2>{project.title}</h2>
                   <p>{project.problem}</p>
                   {project.owner_name && <p>{tr("Автор:")} {project.owner_name}{project.owner_role && <> · {tr(statusText(project.owner_role))}</>}</p>}
                   {project.mentor_name && <p>{tr("Ментор:")} {project.mentor_name}</p>}
@@ -112,13 +104,15 @@ export default function ProjectsPage() {
                       <Badge key={skill}>{skill}</Badge>
                     ))}
                   </div>
-                  <p>
+                  </div>
+                  <div className="project-entry-action"><p>
                     {project.available_places !== undefined ? `${tr("Свободных мест:")} ${project.available_places} / ${project.capacity}` : `${tr("Мест:")} ${project.capacity}`} ·{" "}
                     {tr(statusText(project.visibility_status))}
                   </p>
                   <Button href={`/projects/${project.id}`} variant="secondary">
                     {t.readMore}
                   </Button>
+                  </div>
                 </article>
               ))}
             </div>

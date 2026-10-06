@@ -20,9 +20,6 @@ export function MentorCatalogIntro({ demo = false }: { demo?: boolean }) {
         <h1>{demo ? c.demoTitle : c.title}</h1>
         <p className="discovery-lead">{demo ? c.demoDescription : c.description}</p>
       </div>
-      <ol className="discovery-steps" aria-label={c.filters}>
-        {[c.stepOne, c.stepTwo, c.stepThree].map((step, index) => <li key={step}><span aria-hidden="true">0{index + 1}</span>{step}</li>)}
-      </ol>
     </div>
   </section>;
 }
