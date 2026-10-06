@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, MapPin, Search } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { Badge, Button, EmptyState, Field, TextLink } from "@/components/ui";
 import { useLocale } from "@/lib/i18n";
+import { discoveryText, MentorCatalogIntro, MentorPreviewCard } from "./mentor-discovery";
 import {
   demoDirections,
   demoMentors,
@@ -32,6 +33,7 @@ function initials(name: string) {
 export function DemoMentorCatalog() {
   const { locale } = useLocale();
   const text = demoText[locale];
+  const c = discoveryText[locale];
   const [q, setQ] = useState("");
   const [direction, setDirection] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
@@ -55,58 +57,44 @@ export function DemoMentorCatalog() {
   }
 
   return (
-    <AppShell title={text.title} description={text.subtitle}>
-      <div className="container page-content">
+    <AppShell>
+      <MentorCatalogIntro demo />
+      <div className="container discovery-content">
         <DemoNotice />
-        <div className="demo-toolbar">
-          <label className="search-box">
-            <Search size={18} aria-hidden="true" />
+        <div className="discovery-layout">
+        <aside className="discovery-filters" aria-label={c.filters}>
+          <h2>{c.filters}</h2>
+          <label className="discovery-filter-field"><span>{text.searchLabel}</span><span className="search-box">
+            <Search size={17} strokeWidth={1.6} aria-hidden="true" />
             <input name="q" aria-label={text.searchLabel} placeholder={text.searchPlaceholder} value={q} onChange={(event) => setQ(event.target.value)} />
-          </label>
-          <label className="demo-label">
+          </span></label>
+          <label className="discovery-filter-field">
             <span>{text.filterLabel}</span>
             <select name="direction" aria-label={text.filterLabel} value={direction} onChange={(event) => setDirection(event.target.value)}>
               <option value="">{text.allDirections}</option>
               {demoDirections.map((item) => <option key={item.id} value={item.id}>{item.label[locale]}</option>)}
             </select>
           </label>
-          <label className="demo-checkbox">
+          <label className="discovery-checkbox">
             <input type="checkbox" name="openOnly" checked={openOnly} onChange={(event) => setOpenOnly(event.target.checked)} />
             <span>{text.availableOnly}</span>
           </label>
-        </div>
-        <p className="demo-summary" aria-live="polite">{text.mentorsCount}: {mentors.length}</p>
+          {(q || direction || openOnly) && <button type="button" className="discovery-reset" onClick={resetFilters}>{text.resetFilters}</button>}
+          <div className="discovery-guide"><h3>{c.guideTitle}</h3><p>{c.guideText}</p></div>
+        </aside>
+        <section className="discovery-results" aria-label={text.mentorsCount}>
+        <div className="discovery-results-heading"><h2>{text.mentorsCount}{" "}<span className="discovery-count" aria-live="polite">{mentors.length}</span></h2><p>{c.countNote}</p></div>
         {mentors.length ? (
-          <div className="mentor-grid">
+          <div className="discovery-grid">
             {mentors.map((mentor) => {
               const available = Math.max(0, mentor.capacity - mentor.occupied);
               return (
-                <article className="mentor-card demo-card" key={mentor.id}>
-                  <div className="mentor-card-top">
-                    <div className={`avatar demo-avatar-${mentor.direction}`} aria-hidden="true">{initials(mentor.name)}</div>
-                    <div>
-                      <h3>{mentor.name}</h3>
-                      <span className="mentor-meta"><MapPin size={12} aria-hidden="true" />{mentor.city[locale]}</span>
-                    </div>
-                    <Badge tone="warning">{text.badge}</Badge>
-                  </div>
-                  <div className="tags"><Badge tone="blue">{getDemoDirectionLabel(mentor.direction, locale)}</Badge></div>
-                  <h4>{mentor.title[locale]}</h4>
-                  <p>{mentor.bio[locale]}</p>
-                  <div className="tags">{mentor.expertise[locale].map((item) => <Badge key={item}>{item}</Badge>)}</div>
-                  <dl className="demo-metrics">
-                    <div><dt>{text.experience}</dt><dd>{mentor.experienceYears} {text.experienceUnit}</dd></div>
-                    <div><dt>{text.availability}</dt><dd>{available} {text.placesSuffix} {mentor.capacity}</dd></div>
-                  </dl>
-                  <div className="mentor-card-bottom">
-                    <Badge tone={available > 0 ? "success" : "neutral"}>{available > 0 ? text.availableOnly : text.full}</Badge>
-                    <TextLink href={`/demo/mentors/${mentor.id}`}>{text.profileCta}</TextLink>
-                  </div>
-                </article>
+                <MentorPreviewCard key={mentor.id} demo name={mentor.name} city={mentor.city[locale]} title={mentor.title[locale]} bio={mentor.bio[locale]} topics={[getDemoDirectionLabel(mentor.direction, locale), ...mentor.expertise[locale]]} experience={mentor.experienceYears} available={available} capacity={mentor.capacity} languages={mentor.languages} open={available > 0} href={`/demo/mentors/${mentor.id}`} />
               );
             })}
           </div>
         ) : <EmptyState title={text.noResults} action={<Button variant="secondary" onClick={resetFilters}>{text.resetFilters}</Button>} />}
+        </section></div>
       </div>
     </AppShell>
   );

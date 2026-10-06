@@ -1,12 +1,13 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowUpRight, MapPin, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { AppShell } from "@/components/shell";
-import { Badge, Button, EmptyState, TextLink } from "@/components/ui";
+import { Button, EmptyState } from "@/components/ui";
+import { discoveryText, MentorCatalogIntro, MentorPreviewCard } from "@/components/mentor-discovery";
 import { api, errorMessage } from "@/lib/api";
 import type { Direction, Mentor } from "@/lib/types";
-import { useLocale, translatePhrase as tr } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 const demoInvite = {
   ru: { title: "Посмотреть, как выглядит менторство", body: "Демо-каталог: 6 вымышленных менторов, профили и пробная заявка без отправки.", action: "Открыть демо менторов" },
   kk: { title: "Менторлық қалай көрінетінін қараңыз", body: "Демо-каталог: 6 ойдан шығарылған ментор, профильдер және жіберілмейтін сынақ өтінімі.", action: "Менторлар демосын ашу" },
@@ -22,6 +23,7 @@ function CatalogContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
+  const [openOnly, setOpenOnly] = useState(false);
   useEffect(() => {
     let live = true;
     const controller = new AbortController();
@@ -56,26 +58,26 @@ function CatalogContent() {
   }, [direction, q, revision]);
   const name = (d: Direction) =>
     locale === "kk" ? d.name_kk : locale === "en" ? d.name_en : d.name_ru;
+  const c = discoveryText[locale];
+  const visibleMentors = openOnly ? mentors.filter(mentor => mentor.intake_open) : mentors;
+  const resetFilters = () => { setDirection(""); setQ(""); setOpenOnly(false); };
   return (
-    <AppShell title={t.catalogTitle} description={t.catalogText}>
-      <div className="container page-content">
-        <section className="demo-catalog-invite" aria-label={demoInvite[locale].title}>
-          <div>
-            <h2>{demoInvite[locale].title}</h2>
-            <p>{demoInvite[locale].body}</p>
-          </div>
-          <Button href="/demo/mentors" variant="secondary">{demoInvite[locale].action}</Button>
-        </section>
-        <div className="filters">
-          <div className="search-box">
-            <Search size={18} />
+    <AppShell>
+      <MentorCatalogIntro />
+      <div className="container discovery-content">
+        <div className="discovery-layout">
+        <aside className="discovery-filters" aria-label={c.filters}>
+          <h2>{c.filters}</h2>
+          <label className="discovery-filter-field"><span>{t.search}</span><span className="search-box">
+            <Search size={17} strokeWidth={1.6} aria-hidden="true" />
             <input
               aria-label={t.search}
-              placeholder={t.search}
+              placeholder={c.search}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
-          </div>
+          </span></label>
+          <label className="discovery-filter-field"><span>{c.direction}</span>
           <select
             aria-label={t.directions}
             value={direction}
@@ -88,7 +90,13 @@ function CatalogContent() {
               </option>
             ))}
           </select>
-        </div>
+          </label>
+          <label className="discovery-checkbox"><input type="checkbox" checked={openOnly} onChange={e => setOpenOnly(e.target.checked)} /><span>{c.openOnly}</span></label>
+          {(q || direction || openOnly) && <button type="button" className="discovery-reset" onClick={resetFilters}>{c.reset}</button>}
+          <div className="discovery-guide"><h3>{c.guideTitle}</h3><p>{c.guideText}</p></div>
+        </aside>
+        <section className="discovery-results" aria-label={c.results}>
+          <div className="discovery-results-heading"><h2>{c.results}{!loading && !error && <span className="discovery-count" aria-live="polite">{visibleMentors.length}</span>}</h2><p>{c.countNote}</p></div>
         {loading ? (
           <div className="loading-state" aria-live="polite">
             <div className="spinner" />
@@ -113,54 +121,21 @@ function CatalogContent() {
               </Button>
             }
           />
-        ) : mentors.length ? (
-          <div className="mentor-grid">
-            {mentors.map((m) => (
-              <article className="mentor-card" key={m.id}>
-                <div className="mentor-card-top">
-                  <div className="avatar" aria-hidden="true">
-                    {m.full_name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </div>
-                  <div>
-                    <h3>{m.full_name}</h3>
-                    <span className="mentor-meta">
-                      <MapPin size={12} />
-                      {m.city || "—"}
-                    </span>
-                  </div>
-                </div>
-                <div className="tags">
-                  {directions
-                    .filter((d) => m.direction_ids.includes(d.id))
-                    .map((d) => (
-                      <Badge tone="blue" key={d.id}>
-                        {name(d)}
-                      </Badge>
-                    ))}
-                </div>
-                <p>{m.expertise || m.bio}</p>
-                <div className="mentor-card-bottom">
-                  <Badge tone={m.intake_open ? "success" : "neutral"}>
-                    {m.intake_open ? t.openIntake : t.closedIntake}
-                  </Badge>
-                  <TextLink href={`/catalog/${m.id}`}>{t.profile}</TextLink>
-                </div>
-              </article>
-            ))}
+        ) : visibleMentors.length ? (
+          <div className="discovery-grid">
+            {visibleMentors.map(m => <MentorPreviewCard key={m.id} name={m.full_name} city={m.city} title={directions.filter(d => m.direction_ids.includes(d.id)).map(name).join(" · ")} topics={directions.filter(d => m.direction_ids.includes(d.id)).map(name)} bio={m.expertise || m.bio} open={m.intake_open} capacity={m.capacity} href={`/catalog/${m.id}`} />)}
           </div>
         ) : (
-          <EmptyState title={t.noMentors} description={t.noMentorsText} />
+          <EmptyState title={t.noMentors} description={q || direction || openOnly ? c.noMatches : t.noMentorsText} action={q || direction || openOnly ? <Button variant="secondary" onClick={resetFilters}>{c.reset}</Button> : undefined} />
         )}
+        </section></div>
+        <section className="discovery-demo-invite" aria-label={demoInvite[locale].title}><div><h2>{demoInvite[locale].title}</h2><p>{demoInvite[locale].body}</p></div><Button href="/demo/mentors" variant="secondary">{demoInvite[locale].action}</Button></section>
       </div>
     </AppShell>
   );
 }
 export default function CatalogPage() {
-  const { locale, tr } = useLocale();
+  const { tr } = useLocale();
   return (
     <Suspense
       fallback={<div className="loading-state">{tr("Загружаем каталог…")}</div>}
