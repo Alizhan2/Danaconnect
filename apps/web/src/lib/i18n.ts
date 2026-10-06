@@ -30,7 +30,7 @@ const ru = {
     "Среда для знакомства с платформой. Используйте только учебные данные.",
   findMentor: "Найти ментора",
   becomeMentor: "Стать ментором",
-  heroEyebrow: "Менторская платформа Women in Tech Kazakhstan",
+  heroEyebrow: "Менторская платформа Women In Tech Kazakhstan & DANA Connect",
   heroTitle: "Превращайте идеи в реальные проекты вместе с менторами",
   heroText:
     "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
@@ -93,7 +93,7 @@ const kk: typeof ru = {
   demoNote: "Платформамен танысу ортасы. Тек оқу деректерін қолданыңыз.",
   findMentor: "Ментор табу",
   becomeMentor: "Ментор болу",
-  heroEyebrow: "Women in Tech Kazakhstan менторлық платформасы",
+  heroEyebrow: "Women In Tech Kazakhstan & DANA Connect менторлық платформасы",
   heroTitle: "Идеяларды менторлармен бірге нақты жобаларға айналдырыңыз",
   heroText:
     "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
@@ -157,7 +157,7 @@ const en: typeof ru = {
   demoNote: "A space to explore the platform. Use sample data only.",
   findMentor: "Find a Mentor",
   becomeMentor: "Become a mentor",
-  heroEyebrow: "Women in Tech Kazakhstan Mentoring Platform",
+  heroEyebrow: "Women In Tech Kazakhstan & DANA Connect Mentoring Platform",
   heroTitle: "Turn Ideas into Real Projects with the support of Mentors",
   heroText:
     "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan connects participants and experts and helps them achieve measurable results.",

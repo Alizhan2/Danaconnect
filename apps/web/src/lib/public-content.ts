@@ -1,6 +1,6 @@
 export const publicContent = {
   ru: {
-    name: "Менторская платформа Women in Tech Kazakhstan",
+    name: "Менторская платформа Women In Tech Kazakhstan & DANA Connect",
     headline: "Превращайте идеи в реальные проекты вместе с менторами",
     description: "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
     findMentor: "Найти ментора", projects: "Смотреть проекты", mentors: "Менторы", participants: "Участники", projectsLabel: "Проекты",
@@ -20,7 +20,7 @@ export const publicContent = {
     resultsTitle: "Делитесь тем, что получилось", resultsText: "Завершённая работа — основа следующего шага. В витрине можно познакомиться с опубликованными результатами участников.", resultsAction: "Посмотреть результаты",
   },
   kk: {
-    name: "Women in Tech Kazakhstan менторлық платформасы",
+    name: "Women In Tech Kazakhstan & DANA Connect менторлық платформасы",
     headline: "Идеяларды менторлармен бірге нақты жобаларға айналдырыңыз",
     description: "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
     findMentor: "Ментор табу", projects: "Жобаларды көру", mentors: "Менторлар", participants: "Қатысушылар", projectsLabel: "Жобалар",
@@ -40,7 +40,7 @@ export const publicContent = {
     resultsTitle: "Нәтижеңізбен бөлісіңіз", resultsText: "Аяқталған жұмыс — келесі қадамның негізі. Витринада қатысушылардың жарияланған нәтижелерімен танысуға болады.", resultsAction: "Нәтижелерді көру",
   },
   en: {
-    name: "Women in Tech Kazakhstan Mentoring Platform",
+    name: "Women In Tech Kazakhstan & DANA Connect Mentoring Platform",
     headline: "Turn Ideas into Real Projects with the support of Mentors",
     description: "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan connects participants and experts and helps them achieve measurable results.",
     findMentor: "Find a Mentor", projects: "Explore Projects", mentors: "Mentors", participants: "Participants", projectsLabel: "Projects",
