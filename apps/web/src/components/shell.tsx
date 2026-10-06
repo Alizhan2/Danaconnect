@@ -80,7 +80,6 @@ export function AppShell({
     { href: "/catalog", label: t.mentors },
     { href: "/forum", label: tr("Форум") },
     { href: "/showcase", label: t.showcase },
-    { href: "/impact", label: tr("Отчёт платформы") },
   ];
   const side = [
     { href: "/dashboard", label: t.dashboard, Icon: LayoutDashboard },
