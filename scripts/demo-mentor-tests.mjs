@@ -48,6 +48,7 @@ function screen(name, { locale = 'ru', props = {} } = {}) {
     './shell': { AppShell: 'shell' }, '@/components/shell': { AppShell: 'shell' },
     'next/link': { default: 'link' }, 'lucide-react': icons,
   };
+  modules['./mentor-discovery'] = compile('components/mentor-discovery.tsx', modules);
   const component = compile('components/demo-mentors.tsx', modules)[name];
   assert.equal(typeof component, 'function', `${name} is exported`);
   const result = {

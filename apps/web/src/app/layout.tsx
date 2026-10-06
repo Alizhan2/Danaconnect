@@ -5,6 +5,7 @@ import { PlatformProvider } from "@/components/platform-status";
 import "./globals.css";
 import "./wit-home.css";
 import "./wit-shell.css";
+import "./mentor-discovery.css";
 const noto = Noto_Sans({
   subsets: ["cyrillic", "cyrillic-ext", "latin"],
   variable: "--font-noto",
