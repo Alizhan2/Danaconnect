@@ -17,6 +17,11 @@ const accountItems = ['/dashboard', '/catalog', '/projects', '/calendar', '/mess
 const login = { href: '/login', label: 'Войти' };
 const hrefs = items => Array.from(items, item => item.href);
 
+test('platform report stays hidden from shared header, mobile menu and footer', () => {
+  const shell = readFileSync(path.join(root, 'apps/web/src/components/shell.tsx'), 'utf8');
+  assert.doesNotMatch(shell, /href:\s*["']\/impact["']/);
+});
+
 test('signed-in mobile menu includes every account destination once', () => {
   const items = mobileNavigation(publicItems, accountItems, true, login);
   assert.deepEqual(hrefs(items), ['/catalog', '/projects', '/dashboard', '/calendar', '/messages', '/team', '/resources', '/achievements', '/privacy']);

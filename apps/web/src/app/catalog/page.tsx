@@ -7,6 +7,11 @@ import { Badge, Button, EmptyState, TextLink } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import type { Direction, Mentor } from "@/lib/types";
 import { useLocale, translatePhrase as tr } from "@/lib/i18n";
+const demoInvite = {
+  ru: { title: "Посмотреть, как выглядит менторство", body: "Демо-каталог: 6 вымышленных менторов, профили и пробная заявка без отправки.", action: "Открыть демо менторов" },
+  kk: { title: "Менторлық қалай көрінетінін қараңыз", body: "Демо-каталог: 6 ойдан шығарылған ментор, профильдер және жіберілмейтін сынақ өтінімі.", action: "Менторлар демосын ашу" },
+  en: { title: "Explore how mentoring works", body: "Demo catalog: 6 fictional mentors, profiles, and a practice application that is not sent.", action: "Explore demo mentors" },
+};
 function CatalogContent() {
   const { t, locale, tr } = useLocale();
   const query = useSearchParams();
@@ -54,6 +59,13 @@ function CatalogContent() {
   return (
     <AppShell title={t.catalogTitle} description={t.catalogText}>
       <div className="container page-content">
+        <section className="demo-catalog-invite" aria-label={demoInvite[locale].title}>
+          <div>
+            <h2>{demoInvite[locale].title}</h2>
+            <p>{demoInvite[locale].body}</p>
+          </div>
+          <Button href="/demo/mentors" variant="secondary">{demoInvite[locale].action}</Button>
+        </section>
         <div className="filters">
           <div className="search-box">
             <Search size={18} />
