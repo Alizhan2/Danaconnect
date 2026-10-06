@@ -57,7 +57,11 @@ function screen(name, { locale = 'ru', props = {} } = {}) {
     find: predicate => nodes(tree).find(predicate),
     change(predicate, value) {
       const control = this.find(predicate); assert.ok(control, 'control exists');
-      control.props.onChange({ target: { value } }); this.render();
+      if (control.type === 'button') {
+        const choice = this.find(node => node?.type === 'button' && node.props['data-direction'] === value);
+        assert.ok(choice, `direction ${value} exists`); choice.props.onClick();
+      } else control.props.onChange({ target: { value } });
+      this.render();
     },
     toggle(predicate, checked) {
       const control = this.find(predicate); assert.ok(control, 'checkbox exists');
@@ -131,7 +135,7 @@ function profileLinks(fixture) {
   return fixture.nodes().filter(node => node?.props?.href?.startsWith('/demo/mentors/')).map(node => node.props.href);
 }
 const searchInput = node => node?.type === 'input' && node.props.type !== 'checkbox';
-const directionSelect = node => node?.type === 'select';
+const directionButton = node => node?.type === 'button' && Object.hasOwn(node.props, 'data-direction');
 const availableCheckbox = node => node?.type === 'input' && node.props.type === 'checkbox';
 
 test('catalog renders six demo profiles and explicit fictional disclaimer in every locale', () => {
@@ -147,7 +151,7 @@ test('catalog renders six demo profiles and explicit fictional disclaimer in eve
 test('catalog direction filter uses demo tracks and offers two mentors per track', () => {
   const fixture = screen('DemoMentorCatalog');
   for (const direction of data.demoDirections) {
-    fixture.change(directionSelect, direction.id);
+    fixture.change(directionButton, direction.id);
     assert.deepEqual(profileLinks(fixture).sort(), Array.from(data.demoMentors.filter(mentor => mentor.direction === direction.id), mentor => `/demo/mentors/${mentor.id}`).sort());
   }
 });
@@ -167,13 +171,13 @@ test('available-only filter excludes the closed mentor and combines with directi
   fixture.toggle(availableCheckbox, true);
   assert.equal(new Set(profileLinks(fixture)).size, 5);
   assert.ok(!profileLinks(fixture).includes('/demo/mentors/aiya-communication'));
-  fixture.change(directionSelect, 'psychology');
+  fixture.change(directionButton, 'psychology');
   assert.deepEqual(profileLinks(fixture), ['/demo/mentors/mira-development']);
 });
 
 test('empty search displays a reset action that clears all catalog filters', () => {
   const fixture = screen('DemoMentorCatalog');
-  fixture.change(directionSelect, 'education');
+  fixture.change(directionButton, 'education');
   fixture.toggle(availableCheckbox, true);
   fixture.change(searchInput, 'no-such-synthetic-mentor');
   assert.equal(profileLinks(fixture).length, 0);
@@ -182,7 +186,7 @@ test('empty search displays a reset action that clears all catalog filters', () 
   fixture.click(data.demoText.ru.resetFilters);
   assert.equal(new Set(profileLinks(fixture)).size, 6);
   assert.equal(fixture.find(searchInput).props.value, '');
-  assert.equal(fixture.find(directionSelect).props.value, '');
+  assert.equal(fixture.find(directionButton).props['aria-pressed'], true);
   assert.equal(fixture.find(availableCheckbox).props.checked, false);
 });
 

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowUpRight, MapPin, Search } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { Badge, Button, EmptyState, Field, TextLink } from "@/components/ui";
 import { useLocale } from "@/lib/i18n";
-import { discoveryText, MentorCatalogIntro, MentorPreviewCard } from "./mentor-discovery";
+import { discoveryText, MentorCatalogIntro, MentorDirectionFilter, MentorPreviewCard } from "./mentor-discovery";
 import {
   demoDirections,
   demoMentors,
@@ -68,13 +68,7 @@ export function DemoMentorCatalog() {
             <Search size={17} strokeWidth={1.6} aria-hidden="true" />
             <input name="q" aria-label={text.searchLabel} placeholder={text.searchPlaceholder} value={q} onChange={(event) => setQ(event.target.value)} />
           </span></label>
-          <label className="discovery-filter-field">
-            <span>{text.filterLabel}</span>
-            <select name="direction" aria-label={text.filterLabel} value={direction} onChange={(event) => setDirection(event.target.value)}>
-              <option value="">{text.allDirections}</option>
-              {demoDirections.map((item) => <option key={item.id} value={item.id}>{item.label[locale]}</option>)}
-            </select>
-          </label>
+          <MentorDirectionFilter label={text.filterLabel} allLabel={text.allDirections} value={direction} onChange={setDirection} options={demoDirections.map(item => ({ id: item.id, label: item.label[locale] }))} />
           <label className="discovery-checkbox">
             <input type="checkbox" name="openOnly" checked={openOnly} onChange={(event) => setOpenOnly(event.target.checked)} />
             <span>{text.availableOnly}</span>

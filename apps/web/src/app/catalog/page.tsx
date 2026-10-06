@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { Button, EmptyState } from "@/components/ui";
-import { discoveryText, MentorCatalogIntro, MentorPreviewCard } from "@/components/mentor-discovery";
+import { discoveryText, MentorCatalogIntro, MentorDirectionFilter, MentorPreviewCard } from "@/components/mentor-discovery";
 import { api, errorMessage } from "@/lib/api";
 import type { Direction, Mentor } from "@/lib/types";
 import { useLocale } from "@/lib/i18n";
@@ -77,26 +77,13 @@ function CatalogContent() {
               onChange={(e) => setQ(e.target.value)}
             />
           </span></label>
-          <label className="discovery-filter-field"><span>{c.direction}</span>
-          <select
-            aria-label={t.directions}
-            value={direction}
-            onChange={(e) => setDirection(e.target.value)}
-          >
-            <option value="">{t.allDirections}</option>
-            {directions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {name(d)}
-              </option>
-            ))}
-          </select>
-          </label>
+          <MentorDirectionFilter label={c.direction} allLabel={t.allDirections} value={direction} onChange={setDirection} options={directions.map(item => ({ id: item.id, label: name(item) }))} />
           <label className="discovery-checkbox"><input type="checkbox" checked={openOnly} onChange={e => setOpenOnly(e.target.checked)} /><span>{c.openOnly}</span></label>
           {(q || direction || openOnly) && <button type="button" className="discovery-reset" onClick={resetFilters}>{c.reset}</button>}
           <div className="discovery-guide"><h3>{c.guideTitle}</h3><p>{c.guideText}</p></div>
         </aside>
         <section className="discovery-results" aria-label={c.results}>
-          <div className="discovery-results-heading"><h2>{c.results}{!loading && !error && <span className="discovery-count" aria-live="polite">{visibleMentors.length}</span>}</h2><p>{c.countNote}</p></div>
+          <div className="discovery-results-heading"><h2>{c.results}{" "}{!loading && !error && <span className="discovery-count" aria-live="polite">{visibleMentors.length}</span>}</h2><p>{c.countNote}</p></div>
         {loading ? (
           <div className="loading-state" aria-live="polite">
             <div className="spinner" />
