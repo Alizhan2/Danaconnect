@@ -16,7 +16,7 @@ export function RegistrationPreview({ role }: { role: ParticipantRole }) {
   const [draft, setDraft] = useState<RegistrationDraft>(() => emptyRegistration(role));
   const title = tr(role === "mentor" ? "Анкета ментора" : "Анкета менти");
   return <AppShell title={title} description={tr("Посмотрите поля анкеты перед регистрацией.")}>
-    <div className="container section stack narrow" style={{ paddingTop: 0 }}>
+    <div className="container section stack narrow registration-page" style={{ paddingTop: 0 }}>
       <div className="notice" role="status"><strong>{tr("Предпросмотр анкеты")}</strong><p>{tr("Это просмотр полей. Введённые здесь данные не отправляются и не сохраняются. После подтверждения email анкету нужно заполнить заново.")}</p></div>
       <div className="actions"><Button href={`/login?role=${role}`}>{tr("Начать регистрацию по email")}</Button><Button href="/register" variant="secondary">{tr("Выбрать другую роль")}</Button></div>
       <section className="panel stack">

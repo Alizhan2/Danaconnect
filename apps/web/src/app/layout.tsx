@@ -6,6 +6,7 @@ import "./globals.css";
 import "./wit-home.css";
 import "./wit-shell.css";
 import "./mentor-discovery.css";
+import "./community-design.css";
 const noto = Noto_Sans({
   subsets: ["cyrillic", "cyrillic-ext", "latin"],
   variable: "--font-noto",
