@@ -27,6 +27,14 @@ export function MentorCatalogIntro({ demo = false }: { demo?: boolean }) {
   </section>;
 }
 
+export function MentorDirectionFilter({ options, value, onChange, label, allLabel }: {
+  options: { id: string; label: string }[]; value: string; onChange: (value: string) => void; label: string; allLabel: string;
+}) {
+  return <div className="discovery-direction-filter" role="group" aria-label={label}>
+    {[{ id: "", label: allLabel }, ...options].map(option => <button key={option.id} type="button" data-direction={option.id} aria-pressed={value === option.id} onClick={() => onChange(option.id)}>{option.label}</button>)}
+  </div>;
+}
+
 export function MentorPreviewCard({ name, city, title, bio, topics, open, href, demo = false, experience, capacity, available, languages }: {
   name: string; city: string; title: string; bio: string; topics: string[]; open: boolean; href: string;
   demo?: boolean; experience?: number; capacity?: number; available?: number; languages?: string[];
@@ -43,7 +51,7 @@ export function MentorPreviewCard({ name, city, title, bio, topics, open, href, 
       <div className="discovery-avatar" aria-hidden="true">{initials}</div>
       <div className="discovery-person-copy"><h3>{name}</h3>{title && <p>{title}</p>}<span className="discovery-location"><MapPin size={14} strokeWidth={1.6} aria-hidden="true" />{city || c.location}</span></div>
     </div>
-    <div className="discovery-card-body"><h4>{c.help}</h4><p>{bio}</p></div>
+    <div className="discovery-card-body"><p>{bio}</p></div>
     <div className="discovery-topics">{[...new Set(topics)].map(topic => <span key={topic}>{topic}</span>)}</div>
     {(experience !== undefined || capacity !== undefined || !!languages?.length) && <dl className="discovery-details">
       {experience !== undefined && <div><dt>{c.years}</dt><dd>{experience}</dd></div>}

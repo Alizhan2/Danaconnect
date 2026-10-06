@@ -64,7 +64,7 @@ export default function HomePage() {
         </div>
       </section>
       <PublicSummary />
-      <section className="container section">
+      <section className="container section wit-home-path">
         <SectionHeading
           eyebrow={`01 / ${tr("Начните путь")}`}
           title={t.path}
@@ -84,7 +84,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-      <section className="section section-soft">
+      <section className="section section-soft wit-home-directions">
         <div className="container">
           <SectionHeading
             eyebrow={`02 / ${tr("Найдите направление")}`}
@@ -143,7 +143,7 @@ export default function HomePage() {
           )}
         </div>
       </section>
-      <section className="container section">
+      <section className="container section wit-home-result">
         <div className="results-panel">
           <div className="results-art" aria-hidden="true">
             <Flag />
@@ -156,7 +156,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className="container section" style={{ paddingTop: 0 }}>
+      <section className="container section wit-home-join" style={{ paddingTop: 0 }}>
         <div className="join-panel">
           <div>
             <h2>{t.joinTitle}</h2>
