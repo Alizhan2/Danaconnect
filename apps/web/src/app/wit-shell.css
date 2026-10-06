@@ -1,0 +1,44 @@
+/* The complete country mark and full platform name stay readable at every width. */
+.header .header-inner{max-width:1280px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 30px;padding:18px 40px 0}
+.header .wordmark,.footer .wordmark{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;max-width:460px;flex-shrink:1}
+.header .wordmark .brand-marks,.footer .wordmark .brand-marks{display:flex;align-items:center;gap:20px;margin:0}
+.header .wordmark .wit-brand-logo,.footer .wordmark .wit-brand-logo{display:block;width:88px;height:88px;max-width:100%;object-fit:contain}
+.header .wordmark .brand-secondary,.footer .wordmark .brand-secondary{display:block;margin:0}
+.header .wordmark .brand-secondary .brand-logo,.footer .wordmark .brand-secondary .brand-logo{width:110px;height:34px;object-fit:cover;object-position:50% 44%}
+.header .wordmark .brand-platform-name,.footer .wordmark .brand-platform-name{font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;line-height:1.5;color:var(--ink);margin:0;overflow-wrap:anywhere}
+.header .desktop-nav{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;justify-content:center;gap:12px 36px;border-top:1px solid var(--line);font-size:13px;padding-block:3px}
+.header .desktop-nav a{min-height:44px;display:flex;align-items:center}
+.header .header-actions{grid-column:2;grid-row:1;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.header .locale-select{min-height:44px;min-width:54px;font-size:13px}
+.header .header-signin,.header .header-get-started{min-height:44px;white-space:nowrap}
+.header .mobile-menu-button{min-height:44px;min-width:44px}
+.footer .footer-inner{align-items:flex-start;gap:32px}
+.footer .footer-inner>div{min-width:0}
+.footer nav{flex-wrap:wrap;gap:8px 24px;font-size:13px}
+.footer nav a{min-height:44px;display:inline-flex;align-items:center}
+.footer p{font-size:12px}
+@media(max-width:1150px){
+ .header .header-inner{padding:16px 28px;align-items:center;gap:18px}
+ .header .desktop-nav{display:none}
+ .header .mobile-menu-button{display:grid}
+ .header .mobile-nav{display:flex;flex-direction:column;padding:0 28px 20px;font-size:14px;max-height:60vh;max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;gap:0}
+ .header .mobile-nav a{display:flex;align-items:center;min-height:44px;padding:10px 0}
+ .header .mobile-nav a[aria-current=page]{font-weight:700;color:var(--blue)}
+}
+@media(max-width:760px){
+ .header .header-inner{padding:16px 22px;grid-template-columns:1fr;gap:14px}
+ .header .header-actions{grid-column:1;grid-row:2;justify-content:flex-start;gap:10px}
+ .header .header-signin{display:inline-flex}
+ .header .mobile-menu-button{margin-left:auto}
+ .header .wordmark,.footer .wordmark{max-width:100%}
+ .header .wordmark .brand-marks,.footer .wordmark .brand-marks{gap:18px}
+ .header .wordmark .wit-brand-logo,.footer .wordmark .wit-brand-logo{width:80px;height:80px}
+ .header .mobile-nav{padding-inline:22px}
+ .footer .footer-inner{flex-direction:column}
+ .footer nav{justify-content:flex-start;gap:4px 20px}
+}
+@media(max-width:390px){
+ .header .header-actions{gap:6px}
+ .header .header-signin,.header .header-get-started{padding-inline:10px;font-size:12px;white-space:normal;text-align:center}
+ .header .header-signin svg{display:none}
+}

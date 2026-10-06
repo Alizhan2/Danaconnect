@@ -381,6 +381,12 @@ def _analytics(db):
     return data
 
 
+@router.get("/public-summary")
+def public_summary(db: Session = Depends(get_db)):
+    from app.public_summary import landing_counts
+    return {**landing_counts(db), "demo_mode": _demo_mode(db)}
+
+
 @router.get("/stats")
 def public_stats(db: Session = Depends(get_db)):
     data = _analytics(db)

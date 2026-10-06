@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
-import { useLocale, translatePhrase as tr } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 import { Button } from "./ui";
 import { usePlatformStatus } from "./platform-status";
 import { statusText } from "./workflows/common";
@@ -76,18 +76,20 @@ export function AppShell({
     };
   }, [pathname]);
   const nav = [
-    { href: "/register", label: tr("Регистрация") },
     { href: "/catalog", label: t.mentors },
-    { href: "/forum", label: tr("Форум") },
-    { href: "/showcase", label: t.showcase },
+    { href: "/projects", label: t.projects },
+    { href: "/community", label: t.community },
+    { href: "/about", label: t.aboutPlatform },
+    { href: "/register", label: t.join },
   ];
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`) || (href === "/projects" && pathname === "/forum");
   const side = [
     { href: "/dashboard", label: t.dashboard, Icon: LayoutDashboard },
     { href: "/notifications", label: tr("Уведомления"), Icon: Bell },
     { href: "/support", label: tr("Поддержка"), Icon: LifeBuoy },
     { href: "/catalog", label: t.mentors, Icon: Users },
     { href: "/recommendations", label: tr("Подбор ментора"), Icon: Users },
-    { href: "/forum", label: tr("Форум"), Icon: FolderOpen },
+    { href: "/projects", label: t.projects, Icon: FolderOpen },
     { href: "/calendar", label: t.calendar, Icon: CalendarDays },
     { href: "/messages", label: t.messages, Icon: MessageSquare },
     { href: "/team", label: tr("Команда"), Icon: Users },
@@ -126,14 +128,15 @@ export function AppShell({
       <header className="header">
         <div className="header-inner">
           <Link className="wordmark" href="/" aria-label={tr("Главная")}>
-            <BrandLogo preload /><span>{tr("Менторство и развитие")}</span>
+            <BrandLogo preload secondary /><span className="brand-platform-name">{t.heroEyebrow}</span>
           </Link>
           <nav className="desktop-nav" aria-label={tr("Основная навигация")}>
             {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={pathname.startsWith(item.href) || (item.href === "/forum" && pathname.startsWith("/projects")) ? "active" : ""}
+                className={isActive(item.href) ? "active" : ""}
+                aria-current={isActive(item.href) ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -149,8 +152,8 @@ export function AppShell({
                 setLocale(event.target.value as "ru" | "kk" | "en")
               }
             >
-              <option value="ru">RU</option>
               <option value="kk">KZ</option>
+              <option value="ru">RU</option>
               <option value="en">EN</option>
             </select>
             <Button
@@ -161,6 +164,7 @@ export function AppShell({
               {user ? t.dashboard : t.login}
               <ArrowUpRight size={16} />
             </Button>
+            {!user && <Button href="/register" className="header-get-started">{t.getStarted}</Button>}
             <button
               ref={menuButton}
               className="icon-button mobile-menu-button"
@@ -180,7 +184,7 @@ export function AppShell({
                 onClick={() => setOpen(false)}
                 key={item.href}
                 href={item.href}
-                aria-current={pathname.startsWith(item.href) || (item.href === "/forum" && pathname.startsWith("/projects")) ? "page" : undefined}
+                aria-current={isActive(item.href) ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -197,7 +201,7 @@ export function AppShell({
                 <Link
                   key={href}
                   href={href}
-                  className={pathname.startsWith(href) || (href === "/forum" && pathname.startsWith("/projects")) ? "active" : ""}
+                  className={isActive(href) ? "active" : ""}
                 >
                   <Icon size={19} />
                   {label}
@@ -243,7 +247,7 @@ export function AppShell({
         <div className="container footer-inner">
           <div>
             <Link href="/" className="wordmark">
-              <BrandLogo /><span>{t.footer}</span>
+              <BrandLogo secondary /><span className="brand-platform-name">{t.heroEyebrow}</span>
             </Link>
           </div>
           <div>

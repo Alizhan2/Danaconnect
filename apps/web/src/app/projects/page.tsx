@@ -34,7 +34,7 @@ export default function ProjectsPage() {
   const canCreate = user?.account_status === "active" && ["mentor", "mentee"].includes(user.role);
   return (
     <AppShell
-      title={tr("Форум")}
+      title={t.projects}
       description={tr(
         "Обсуждайте проекты, предлагайте идеи и находите команду для совместной работы.",
       )}

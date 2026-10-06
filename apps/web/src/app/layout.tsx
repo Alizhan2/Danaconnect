@@ -3,6 +3,8 @@ import { Noto_Sans, Poppins } from "next/font/google";
 import { LocaleProvider } from "@/lib/i18n";
 import { PlatformProvider } from "@/components/platform-status";
 import "./globals.css";
+import "./wit-home.css";
+import "./wit-shell.css";
 const noto = Noto_Sans({
   subsets: ["cyrillic", "cyrillic-ext", "latin"],
   variable: "--font-noto",
@@ -16,11 +18,11 @@ const poppins = Poppins({
 });
 export const metadata: Metadata = {
   title: {
-    default: "DanaConnect — менторство и развитие",
-    template: "%s · DanaConnect",
+    default: "Менторская платформа Women in Tech Kazakhstan",
+    template: "%s · Women in Tech Kazakhstan",
   },
   description:
-    "Платформа менторства: найдите ментора, развивайте проект и планируйте встречи.",
+    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
 };
 export default function RootLayout({
   children,
