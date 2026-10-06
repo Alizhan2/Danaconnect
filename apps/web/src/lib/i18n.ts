@@ -22,15 +22,18 @@ const ru = {
   admin: "Администрирование",
   login: "Войти",
   join: "Присоединиться",
+  community: "Сообщество",
+  aboutPlatform: "О платформе",
+  getStarted: "Начать",
   demo: "Первая версия · демонстрационные данные",
   demoNote:
     "Среда для знакомства с платформой. Используйте только учебные данные.",
   findMentor: "Найти ментора",
   becomeMentor: "Стать ментором",
-  heroEyebrow: "Менторство. Сообщество. Развитие.",
-  heroTitle: "Следующий шаг\nс поддержкой ментора.",
+  heroEyebrow: "Менторская платформа Women in Tech Kazakhstan",
+  heroTitle: "Превращайте идеи в реальные проекты вместе с менторами",
   heroText:
-    "Развивайте идею, находите ответы и двигайтесь к своему результату — вместе с теми, кто готов делиться опытом.",
+    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan объединяет участников и экспертов и помогает достигать измеримых результатов.",
   path: "Ваш путь на платформе",
   pathText: "От первого знакомства до результата, который можно показать.",
   step1: "Расскажите о себе",
@@ -66,7 +69,7 @@ const ru = {
   joinTitle: "Есть опыт, которым хочется поделиться?",
   joinText:
     "Помогите участницам пройти следующий этап: от идеи и первых решений до готового проекта.",
-  explore: "Посмотреть проекты",
+  explore: "Смотреть проекты",
   readMore: "Подробнее",
   resultsTitle: "Идеи становятся результатами",
   resultsText:
@@ -83,14 +86,17 @@ const kk: typeof ru = {
   admin: "Әкімшілік",
   login: "Кіру",
   join: "Қосылу",
+  community: "Қауымдастық",
+  aboutPlatform: "Платформа туралы",
+  getStarted: "Бастау",
   demo: "Алғашқы нұсқа · демонстрациялық деректер",
   demoNote: "Платформамен танысу ортасы. Тек оқу деректерін қолданыңыз.",
   findMentor: "Ментор табу",
   becomeMentor: "Ментор болу",
-  heroEyebrow: "Менторлық. Қауымдастық. Даму.",
-  heroTitle: "Ментор қолдауымен\nкелесі қадамға.",
+  heroEyebrow: "Women in Tech Kazakhstan менторлық платформасы",
+  heroTitle: "Идеяларды менторлармен бірге нақты жобаларға айналдырыңыз",
   heroText:
-    "Идеяңызды дамытып, жауап тауып, тәжірибесімен бөлісуге дайын адамдармен бірге нәтижеге жетіңіз.",
+    "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
   path: "Платформадағы жолыңыз",
   pathText: "Алғашқы танысудан көрсетуге болатын нәтижеге дейін.",
   step1: "Өзіңіз туралы айтыңыз",
@@ -142,16 +148,19 @@ const en: typeof ru = {
   calendar: "Meetings",
   messages: "Messages",
   admin: "Administration",
-  login: "Sign in",
-  join: "Join us",
+  login: "Log In",
+  join: "Join",
+  community: "Community",
+  aboutPlatform: "About",
+  getStarted: "Get Started",
   demo: "First release · demonstration data",
   demoNote: "A space to explore the platform. Use sample data only.",
-  findMentor: "Find a mentor",
+  findMentor: "Find a Mentor",
   becomeMentor: "Become a mentor",
-  heroEyebrow: "Mentorship. Community. Growth.",
-  heroTitle: "Your next step,\nwith a mentor beside you.",
+  heroEyebrow: "Women in Tech Kazakhstan Mentoring Platform",
+  heroTitle: "Turn Ideas into Real Projects with the support of Mentors",
   heroText:
-    "Develop your idea, find answers, and work towards your next milestone with people ready to share their experience.",
+    "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan connects participants and experts and helps them achieve measurable results.",
   path: "Your journey on the platform",
   pathText: "From the first conversation to an outcome you can share.",
   step1: "Tell us about yourself",
@@ -190,7 +199,7 @@ const en: typeof ru = {
   joinTitle: "Have experience worth sharing?",
   joinText:
     "Help participants take the next step, from an idea and first decisions to a completed project.",
-  explore: "Explore projects",
+  explore: "Explore Projects",
   readMore: "Learn more",
   resultsTitle: "Ideas become outcomes",
   resultsText:
@@ -242,7 +251,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     (source: string) => translatePhrase(source, locale),
     [locale],
   );
-  useEffect(() => { document.title = `DanaConnect — ${tr('Менторство и развитие')}`; }, [tr]);
+  useEffect(() => {
+    // Localize the shared title without erasing a route's specific metadata.
+    const sharedTitles = Object.values(dictionaries).map((dictionary) => dictionary.heroEyebrow);
+    if (sharedTitles.includes(document.title) || document.title === "DanaConnect — Менторство и развитие") {
+      document.title = dictionaries[locale].heroEyebrow;
+    }
+  }, [locale]);
   const value = useMemo(
     () => ({ locale, setLocale, t: dictionaries[locale], tr }),
     [locale, setLocale, tr],

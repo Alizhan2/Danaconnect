@@ -7,16 +7,17 @@ import {
   Compass,
   Flag,
   Lightbulb,
-  MoveUpRight,
-  Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { Button, EmptyState, SectionHeading, TextLink } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import type { Direction } from "@/lib/types";
-import { useLocale, translatePhrase as tr } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
+import { publicContent } from "@/lib/public-content";
+import { PublicSummary } from "@/components/public-summary";
 export default function HomePage() {
   const { t, locale, tr } = useLocale();
+  const c = publicContent[locale];
   const [directions, setDirections] = useState<Direction[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -35,69 +36,34 @@ export default function HomePage() {
     locale === "kk" ? d.name_kk : locale === "en" ? d.name_en : d.name_ru;
   return (
     <AppShell>
-      <section className="hero">
-        <div className="container hero-inner">
-          <div className="hero-copy">
-            <p className="eyebrow">{t.heroEyebrow}</p>
-            <h1>{t.heroTitle}</h1>
-            <p>{t.heroText}</p>
-            <div className="hero-actions">
-              <Button href="/register/mentee" variant="accent">
-                {tr("Стать менти")}
-                <ArrowUpRight size={16} />
-              </Button>
-              <Button href="/register/mentor" variant="secondary">
-                {t.becomeMentor}
-              </Button>
-            </div>
-            <div className="hero-footnote">
-              <Sparkles size={14} />
-              {locale === "ru"
-                ? "Знакомство начинается с одной беседы"
-                : locale === "kk"
-                  ? "Танысу бір әңгімеден басталады"
-                  : "Every connection starts with a conversation"}
+      <section className="wit-hero">
+        <div className="container wit-hero-inner">
+          <div className="wit-hero-copy">
+            <p className="eyebrow">{c.name}</p>
+            <h1>{c.headline}</h1>
+            <p className="wit-hero-description">{c.description}</p>
+            <div className="wit-hero-actions">
+              <Button href="/catalog">{c.findMentor}<ArrowUpRight size={18}/></Button>
+              <Button href="/projects" variant="secondary">{c.projects}</Button>
             </div>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <div className="orbit" />
-            <div className="growth-symbol">↗</div>
-            <div className="floating-card">
-              <div className="art-icon">
-                <Compass size={19} />
-              </div>
-              <div>
-                <strong>
-                  {locale === "ru"
-                    ? "Новый взгляд"
-                    : locale === "kk"
-                      ? "Жаңа көзқарас"
-                      : "A new perspective"}
-                </strong>
-                <small>{tr("Исследуйте свои возможности")}</small>
-              </div>
-            </div>
-            <div className="floating-card second">
-              <div className="art-icon">
-                <Lightbulb size={19} />
-              </div>
-              <div>
-                <strong>
-                  {locale === "ru"
-                    ? "Ваша следующая идея"
-                    : locale === "kk"
-                      ? "Сіздің келесі идеяңыз"
-                      : "Your next idea"}
-                </strong>
-                <small>{tr("От идеи к действию")}</small>
-              </div>
-            </div>
-            <span className="art-label">
-              {tr("Знакомьтесь · Учитесь · Создавайте")}
-            </span>
+          <div className="wit-connection-art" aria-hidden="true">
+            <svg className="wit-connection-lines" viewBox="0 0 440 440" fill="none">
+              <circle cx="220" cy="220" r="178" stroke="#030ba6" strokeOpacity=".12" strokeDasharray="4 9"/>
+              <circle cx="220" cy="220" r="108" fill="#fafae6"/>
+              <path d="M100 130L326 182L215 330Z" stroke="#030ba6" strokeOpacity=".28" strokeWidth="2"/>
+              <path d="M100 130Q120 340 326 182" stroke="#030ba6" strokeOpacity=".12" strokeWidth="2"/>
+              <circle cx="65" cy="245" r="9" fill="#e5cf67"/><circle cx="347" cy="305" r="13" fill="#05f2f2"/>
+              <circle cx="250" cy="43" r="6" fill="#030ba6"/>
+            </svg>
+            <div className="wit-network-card wit-network-idea"><Lightbulb size={25}/><span>{c.idea}</span></div>
+            <div className="wit-network-card wit-network-mentor"><Compass size={25}/><span>{c.support}</span></div>
+            <div className="wit-network-card wit-network-project"><Flag size={25}/><span>{c.result}</span></div>
+            <p className="wit-art-caption">{c.connection}</p>
           </div>
         </div>
       </section>
+      <PublicSummary />
       <section className="container section">
         <SectionHeading
           eyebrow={`01 / ${tr("Начните путь")}`}
@@ -149,7 +115,7 @@ export default function HomePage() {
             />
           ) : directions.length ? (
             <div className="direction-grid">
-              {directions.map((d, i) => (
+              {directions.map((d) => (
                 <Link
                   href={`/catalog?direction=${d.id}`}
                   className="direction-card"

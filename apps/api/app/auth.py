@@ -84,11 +84,23 @@ def requested_locale(request: Request, fallback: str = "ru") -> str:
     return fallback if fallback in {"ru", "kk", "en"} else "ru"
 
 
+def document_applies(document, user):
+    return ((not document.required_roles or user.role in document.required_roles)
+            and (not document.direction_id or document.direction_id in (user.direction_ids or [])))
+
+
+def required_documents_configured(documents, version_count, user, scopes):
+    configured = version_count == len(documents)
+    if settings.environment == "production" and user.role != "admin":
+        for scope in ("registration", "showcase"):
+            if scope in scopes and not any(document.scope == scope for document in documents):
+                configured = False
+    return configured
+
+
 def applicable_required_documents(db: Session, user: User, scopes=("registration", "intake")) -> list[Document]:
     documents = db.scalars(select(Document).where(Document.active.is_(True), Document.scope.in_(scopes))).all()
-    return [document for document in documents
-        if (not document.required_roles or user.role in document.required_roles)
-        and (not document.direction_id or document.direction_id in (user.direction_ids or []))]
+    return [document for document in documents if document_applies(document, user)]
 
 
 def required_document_state(db: Session, user: User, scopes=("registration", "intake")) -> tuple[bool, list[DocumentVersion]]:
@@ -98,12 +110,7 @@ def required_document_state(db: Session, user: User, scopes=("registration", "in
         version = db.scalar(select(DocumentVersion).where(DocumentVersion.document_id == document.id).order_by(DocumentVersion.published_at.desc(), DocumentVersion.id.desc()).limit(1))
         if version:
             versions.append(version)
-    configured = len(versions) == len(documents)
-    if settings.environment == "production" and user.role != "admin":
-        for scope in ("registration", "showcase"):
-            if scope in scopes and not any(document.scope == scope for document in documents):
-                configured = False
-    return configured, versions
+    return required_documents_configured(documents, len(versions), user, scopes), versions
 
 
 def current_required_versions(db: Session, user: User, scopes=("registration", "intake")) -> list[DocumentVersion]:
