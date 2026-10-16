@@ -1,10 +1,7 @@
 /* Public community surfaces: readable type, compact navigation and varied composition. */
 .header .header-inner{gap:4px 24px;padding-top:10px}
-.header .wordmark{flex-direction:row;align-items:center;gap:18px;max-width:470px}
-.header .wordmark .brand-marks{gap:12px;flex-shrink:0}
-.header .wordmark .wit-brand-logo{width:64px;height:64px}
-.header .wordmark .brand-secondary .brand-logo{width:94px;height:30px}
-.header .wordmark .brand-platform-name{font-size:12px;line-height:1.5;max-width:245px}
+.header .wordmark{flex-direction:column;align-items:flex-start;gap:6px;max-width:470px}
+.header .wordmark .brand-platform-name{font-size:12px;line-height:1.5;max-width:420px}
 .header .desktop-nav{border-top:0;justify-content:flex-start;gap:32px;padding-block:0}
 .header .desktop-nav a{font-size:14px}
 .header .button{border-radius:999px;font-size:13px}
@@ -105,7 +102,7 @@
 @media(max-width:1150px){
  .header .header-inner{padding:10px 28px;gap:12px}
  .header .wordmark{max-width:430px}
- .header .wordmark .brand-platform-name{max-width:220px}
+ .header .wordmark .brand-platform-name{max-width:420px}
 }
 @media(max-width:850px){
  .header .wordmark{flex-direction:column;gap:4px;align-items:flex-start}
@@ -117,11 +114,8 @@
 }
 @media(max-width:760px){
  .header .header-inner{padding:10px 22px;gap:8px}
- .header .wordmark{flex-direction:row;gap:14px;align-items:center;max-width:100%}
- .header .wordmark .wit-brand-logo{width:56px;height:56px}
- .header .wordmark .brand-marks{gap:8px}
- .header .wordmark .brand-secondary .brand-logo{width:82px;height:26px}
- .header .wordmark .brand-platform-name{font-size:11px;max-width:220px}
+ .header .wordmark{flex-direction:column;gap:6px;align-items:flex-start;max-width:100%}
+ .header .wordmark .brand-platform-name{font-size:11px;max-width:100%}
  .header .header-actions{gap:6px;flex-wrap:nowrap}
  .header .locale-select{min-width:44px;width:44px;flex-shrink:0}
  .header .header-signin,.header .header-get-started{padding-inline:12px;font-size:12px;white-space:normal}
@@ -144,5 +138,4 @@
 @media(max-width:360px){
  .header .wordmark .brand-platform-name{font-size:10px}
  .header .wordmark{gap:8px}
- .header .wordmark .brand-secondary .brand-logo{width:70px;height:24px}
 }

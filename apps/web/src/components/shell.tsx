@@ -128,7 +128,7 @@ export function AppShell({
       <header className="header">
         <div className="header-inner">
           <Link className="wordmark" href="/" aria-label={tr("Главная")}>
-            <BrandLogo preload secondary /><span className="brand-platform-name">{t.heroEyebrow}</span>
+            <BrandLogo preload /><span className="brand-platform-name">{t.heroEyebrow}</span>
           </Link>
           <nav className="desktop-nav" aria-label={tr("Основная навигация")}>
             {nav.map((item) => (
@@ -247,7 +247,7 @@ export function AppShell({
         <div className="container footer-inner">
           <div>
             <Link href="/" className="wordmark">
-              <BrandLogo secondary /><span className="brand-platform-name">{t.heroEyebrow}</span>
+              <BrandLogo /><span className="brand-platform-name">{t.heroEyebrow}</span>
             </Link>
           </div>
           <div>

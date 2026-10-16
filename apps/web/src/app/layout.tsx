@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicContent } from "@/lib/public-content";
 import { Noto_Sans, Poppins } from "next/font/google";
 import { LocaleProvider } from "@/lib/i18n";
 import { PlatformProvider } from "@/components/platform-status";
@@ -20,11 +21,10 @@ const poppins = Poppins({
 });
 export const metadata: Metadata = {
   title: {
-    default: "Менторская платформа Women in Tech Kazakhstan & DANA Connect",
-    template: "%s · Women in Tech Kazakhstan & DANA Connect",
+    default: publicContent.ru.name,
+    template: "%s · DANA Connect & Women in Tech Kazakhstan",
   },
-  description:
-    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan и DANA Connect объединяют участников и экспертов и помогают достигать измеримых результатов.",
+  description: publicContent.ru.description,
 };
 export default function RootLayout({
   children,

@@ -1,10 +1,11 @@
-/* The complete country mark and full platform name stay readable at every width. */
+/* Equal partner frames, DANA Connect first, with the original assets preserved. */
 .header .header-inner{max-width:1280px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 30px;padding:18px 40px 0}
 .header .wordmark,.footer .wordmark{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;max-width:460px;flex-shrink:1}
-.header .wordmark .brand-marks,.footer .wordmark .brand-marks{display:flex;align-items:center;gap:20px;margin:0}
-.header .wordmark .wit-brand-logo,.footer .wordmark .wit-brand-logo{display:block;width:88px;height:88px;max-width:100%;object-fit:contain}
-.header .wordmark .brand-secondary,.footer .wordmark .brand-secondary{display:block;margin:0}
-.header .wordmark .brand-secondary .brand-logo,.footer .wordmark .brand-secondary .brand-logo{width:110px;height:34px;object-fit:cover;object-position:50% 44%}
+.header .wordmark .brand-marks,.footer .wordmark .brand-marks{--brand-mark-width:112px;--brand-mark-height:64px;display:flex;align-items:center;gap:12px;margin:0;flex-shrink:0}
+.brand-partner{display:block;width:var(--brand-mark-width);height:var(--brand-mark-height);flex-shrink:0}
+.header .wordmark .brand-logo,.footer .wordmark .brand-logo{display:block;width:var(--brand-mark-width);height:var(--brand-mark-height);max-width:100%;object-fit:cover;object-position:50% 44%;background:white}
+.brand-divider{display:block;width:1px;height:44px;background:var(--line);flex-shrink:0}
+.header .wordmark .brand-logo.wit-brand-logo,.footer .wordmark .brand-logo.wit-brand-logo{object-fit:contain;object-position:center}
 .header .wordmark .brand-platform-name,.footer .wordmark .brand-platform-name{font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;line-height:1.5;color:var(--ink);margin:0;overflow-wrap:anywhere}
 .header .desktop-nav{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;justify-content:center;gap:12px 36px;border-top:1px solid var(--line);font-size:13px;padding-block:3px}
 .header .desktop-nav a{min-height:44px;display:flex;align-items:center}
@@ -31,8 +32,7 @@
  .header .header-signin{display:inline-flex}
  .header .mobile-menu-button{margin-left:auto}
  .header .wordmark,.footer .wordmark{max-width:100%}
- .header .wordmark .brand-marks,.footer .wordmark .brand-marks{gap:18px}
- .header .wordmark .wit-brand-logo,.footer .wordmark .wit-brand-logo{width:80px;height:80px}
+ .header .wordmark .brand-marks,.footer .wordmark .brand-marks{--brand-mark-width:104px;--brand-mark-height:60px;gap:12px}
  .header .mobile-nav{padding-inline:22px}
  .footer .footer-inner{flex-direction:column}
  .footer nav{justify-content:flex-start;gap:4px 20px}
@@ -42,3 +42,8 @@
  .header .header-signin,.header .header-get-started{padding-inline:10px;font-size:12px;white-space:normal;text-align:center}
  .header .header-signin svg{display:none}
 }
+
+.header .header-get-started{background:var(--dana-ink);border-color:var(--dana-ink)}
+.header .header-get-started:hover{background:#4e335e;border-color:#4e335e}
+.header .header-signin{color:var(--dana-ink);border-color:var(--dana-ink)}
+.header .desktop-nav a.active,.header .mobile-nav a[aria-current=page]{color:var(--dana-ink)}
