@@ -1,0 +1,566 @@
+{
+  "story": "Anonymous visitor reads the co-branded landing page, chooses KZ/RU/EN, sees API counters and follows public navigation.",
+  "environment": "Cloud workspace, production web build, isolated empty SQLite API; no production writes",
+  "cases": [
+    {
+      "width": 320,
+      "locale": "ru",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 320,
+      "locale": "kk",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 320,
+      "locale": "en",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 390,
+      "locale": "ru",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 390,
+      "locale": "kk",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 390,
+      "locale": "en",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 104,
+          "height": 60,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 768,
+      "locale": "ru",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 768,
+      "locale": "kk",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 768,
+      "locale": "en",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 1280,
+      "locale": "ru",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 1280,
+      "locale": "kk",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "width": 1280,
+      "locale": "en",
+      "marks": [
+        {
+          "alt": "DANA Connect",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "width": 112,
+          "height": 64,
+          "loaded": true
+        }
+      ],
+      "horizontalOverflow": false,
+      "copy": true,
+      "guestActions": true,
+      "navigation": true,
+      "languagePersists": true,
+      "actualApiCounts": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/catalog",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/projects",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/community",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/about",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/register",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/forum",
+      "status": 200,
+      "horizontalOverflow": false
+    }
+  ],
+  "consoleErrors": [],
+  "summaryStates": [
+    {
+      "state": "error",
+      "values": "Dashes, never fabricated zeros",
+      "fixture": true
+    },
+    {
+      "state": "retry",
+      "actualApi": true
+    },
+    {
+      "state": "malformed",
+      "rejected": true,
+      "fixture": true
+    },
+    {
+      "state": "loading",
+      "ariaBusy": true,
+      "fixture": true
+    },
+    {
+      "state": "demo",
+      "clearlyLabelled": true,
+      "fixture": true
+    }
+  ],
+  "adminCases": [
+    {
+      "width": 320,
+      "path": "/login",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 72,
+          "h": 42,
+          "x": 25,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 72,
+          "h": 42,
+          "x": 114,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    },
+    {
+      "width": 320,
+      "path": "/accept-invite",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 72,
+          "h": 42,
+          "x": 25,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 72,
+          "h": 42,
+          "x": 114,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    },
+    {
+      "width": 390,
+      "path": "/login",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 72,
+          "h": 42,
+          "x": 25,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 72,
+          "h": 42,
+          "x": 114,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    },
+    {
+      "width": 390,
+      "path": "/accept-invite",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 72,
+          "h": 42,
+          "x": 25,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 72,
+          "h": 42,
+          "x": 114,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    },
+    {
+      "width": 1280,
+      "path": "/login",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 110,
+          "h": 64,
+          "x": 65,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 110,
+          "h": 64,
+          "x": 196,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    },
+    {
+      "width": 1280,
+      "path": "/accept-invite",
+      "logos": [
+        {
+          "alt": "DANA Connect",
+          "w": 110,
+          "h": 64,
+          "x": 65,
+          "loaded": true
+        },
+        {
+          "alt": "Women in Tech Kazakhstan",
+          "w": 110,
+          "h": 64,
+          "x": 196,
+          "loaded": true
+        }
+      ],
+      "noOverflow": true
+    }
+  ],
+  "source": {
+    "filename": "менторская_платформа_DANA_first.docx",
+    "sha256": "60fe84d30a9c6b23312e5540c87e52bc31234cc5d57784af5a71ca6c1626ed1c",
+    "baselineCommit": "1103465fd1823d1c34c6b8be7f135bd62b33491c"
+  },
+  "checks": {
+    "apiTests": 429,
+    "apiTestsPassed": 429,
+    "sharedFrontendTests": 28,
+    "adminFrontendTests": 26,
+    "typechecks": [
+      "web",
+      "admin"
+    ],
+    "builds": [
+      "web",
+      "admin"
+    ],
+    "otherPassedSuites": [
+      "date-format-tests.mjs",
+      "download-tests.mjs",
+      "registration-tests.mjs",
+      "mentor-offer-tests.mjs",
+      "demo-mentor-tests.mjs"
+    ]
+  },
+  "limitations": [
+    "Exact brandbook colour compliance is unverified; palette uses existing DANA logo colours and a derived accessible plum, with existing WIT accents.",
+    "Browser uses production builds and an isolated empty SQLite API. Synthetic nonzero/loading/error/demo states are labelled fixtures; production counts are not verified.",
+    "Vercel protected production inspection returned 403 forbidden at read_protection_bypass. Preview publishing is attempted separately.",
+    "Acceptance covers the 12 landing/navigation requirements, not all private production workflows or external delivery providers."
+  ]
+}

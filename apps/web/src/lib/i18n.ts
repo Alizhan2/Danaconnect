@@ -11,6 +11,7 @@ import {
 } from "react";
 import { phraseTranslations } from "./translations";
 import { featureTranslations } from "./feature-translations";
+import { publicContent } from "./public-content";
 export type Locale = "ru" | "kk" | "en";
 const ru = {
   mentors: "Менторы",
@@ -30,10 +31,9 @@ const ru = {
     "Среда для знакомства с платформой. Используйте только учебные данные.",
   findMentor: "Найти ментора",
   becomeMentor: "Стать ментором",
-  heroEyebrow: "Менторская платформа Women in Tech Kazakhstan & DANA Connect",
-  heroTitle: "Превращайте идеи в реальные проекты вместе с менторами",
-  heroText:
-    "Найдите ментора, присоединитесь к проекту или предложите собственную идею. Women in Tech Kazakhstan и DANA Connect объединяют участников и экспертов и помогают достигать измеримых результатов.",
+  heroEyebrow: publicContent.ru.name,
+  heroTitle: publicContent.ru.headline,
+  heroText: publicContent.ru.description,
   path: "Ваш путь на платформе",
   pathText: "От первого знакомства до результата, который можно показать.",
   step1: "Расскажите о себе",
@@ -93,10 +93,9 @@ const kk: typeof ru = {
   demoNote: "Платформамен танысу ортасы. Тек оқу деректерін қолданыңыз.",
   findMentor: "Ментор табу",
   becomeMentor: "Ментор болу",
-  heroEyebrow: "Women in Tech Kazakhstan & DANA Connect менторлық платформасы",
-  heroTitle: "Идеяларды менторлармен бірге нақты жобаларға айналдырыңыз",
-  heroText:
-    "Ментор табыңыз, жобаға қосылыңыз немесе өз идеяңызды ұсыныңыз. Women in Tech Kazakhstan мен DANA Connect қатысушылар мен сарапшыларды біріктіріп, өлшенетін нәтижелерге қол жеткізуге көмектеседі.",
+  heroEyebrow: publicContent.kk.name,
+  heroTitle: publicContent.kk.headline,
+  heroText: publicContent.kk.description,
   path: "Платформадағы жолыңыз",
   pathText: "Алғашқы танысудан көрсетуге болатын нәтижеге дейін.",
   step1: "Өзіңіз туралы айтыңыз",
@@ -157,10 +156,9 @@ const en: typeof ru = {
   demoNote: "A space to explore the platform. Use sample data only.",
   findMentor: "Find a Mentor",
   becomeMentor: "Become a mentor",
-  heroEyebrow: "Women in Tech Kazakhstan & DANA Connect Mentoring Platform",
-  heroTitle: "Turn Ideas into Real Projects with the support of Mentors",
-  heroText:
-    "Find a mentor, join a project or share your own idea. Women in Tech Kazakhstan and DANA Connect connect participants and experts and help them achieve measurable results.",
+  heroEyebrow: publicContent.en.name,
+  heroTitle: publicContent.en.headline,
+  heroText: publicContent.en.description,
   path: "Your journey on the platform",
   pathText: "From the first conversation to an outcome you can share.",
   step1: "Tell us about yourself",

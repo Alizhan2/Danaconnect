@@ -49,12 +49,12 @@ export default function HomePage() {
           </div>
           <div className="wit-connection-art" aria-hidden="true">
             <svg className="wit-connection-lines" viewBox="0 0 440 440" fill="none">
-              <circle cx="220" cy="220" r="178" stroke="#030ba6" strokeOpacity=".12" strokeDasharray="4 9"/>
-              <circle cx="220" cy="220" r="108" fill="#fafae6"/>
-              <path d="M100 130L326 182L215 330Z" stroke="#030ba6" strokeOpacity=".28" strokeWidth="2"/>
-              <path d="M100 130Q120 340 326 182" stroke="#030ba6" strokeOpacity=".12" strokeWidth="2"/>
-              <circle cx="65" cy="245" r="9" fill="#e5cf67"/><circle cx="347" cy="305" r="13" fill="#05f2f2"/>
-              <circle cx="250" cy="43" r="6" fill="#030ba6"/>
+              <circle cx="220" cy="220" r="178" stroke="var(--dana-ink)" strokeOpacity=".12" strokeDasharray="4 9"/>
+              <circle cx="220" cy="220" r="108" fill="var(--dana-surface)"/>
+              <path d="M100 130L326 182L215 330Z" stroke="var(--dana-ink)" strokeOpacity=".28" strokeWidth="2"/>
+              <path d="M100 130Q120 340 326 182" stroke="var(--dana-ink)" strokeOpacity=".12" strokeWidth="2"/>
+              <circle cx="65" cy="245" r="9" fill="var(--dana-lilac)"/><circle cx="347" cy="305" r="13" fill="var(--wit-cyan)"/>
+              <circle cx="250" cy="43" r="6" fill="var(--wit-blue)"/>
             </svg>
             <div className="wit-network-card wit-network-idea"><Lightbulb size={25}/><span>{c.idea}</span></div>
             <div className="wit-network-card wit-network-mentor"><Compass size={25}/><span>{c.support}</span></div>
