@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 export async function api<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit & { retry?: boolean } = {},
 ): Promise<T> {
   if (
     !path.startsWith("/") ||
@@ -23,25 +23,39 @@ export async function api<T>(
   headers.set("Accept-Language", getCurrentLocale());
   if (options.body && !(options.body instanceof FormData))
     headers.set("Content-Type", "application/json");
-  let response: Response;
+  const { retry = false, ...requestOptions } = options;
   const timeout = AbortSignal.timeout(20000);
   const signal = options.signal
     ? AbortSignal.any([options.signal, timeout])
     : timeout;
-  try {
-    response = await fetch(`/api/v1${path}`, {
-      ...options,
-      headers,
-      signal,
-      credentials: "include",
-      cache: "no-store",
-    });
-  } catch {
-    throw new ApiError(
-      0,
-      "Не удалось связаться с платформой. Проверьте подключение и повторите попытку.",
-    );
+  // Retry only explicitly opted-in reads, within the original timeout budget.
+  // Mutations must never be replayed after an ambiguous response.
+  const canRetry = (attempt: number) => retry &&
+    (options.method ?? "GET").toUpperCase() === "GET" && attempt < 2 && !signal.aborted;
+  const networkError = () => new ApiError(
+    0,
+    "Не удалось связаться с платформой. Проверьте подключение и повторите попытку.",
+  );
+  async function request(attempt: number): Promise<Response> {
+    if (signal.aborted) throw networkError();
+    let response: Response | undefined;
+    try {
+      response = await fetch(`/api/v1${path}`, {
+        ...requestOptions,
+        headers,
+        signal,
+        credentials: "include",
+        cache: "no-store",
+      });
+    } catch {
+      if (!canRetry(attempt)) throw networkError();
+    }
+    if (response && (!canRetry(attempt) || ![500, 502, 503, 504].includes(response.status))) return response;
+    await response?.body?.cancel();
+    await new Promise<void>((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+    return request(attempt + 1);
   }
+  const response = await request(0);
   const data =
     response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {

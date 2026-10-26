@@ -21,17 +21,20 @@ export default function HomePage() {
   const [directions, setDirections] = useState<Direction[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
   function load() {
-    setLoading(true);
-    setError("");
-    api<Direction[]>("/directions")
-      .then(setDirections)
-      .catch((e) => setError(errorMessage(e)))
-      .finally(() => setLoading(false));
+    setRevision((value) => value + 1);
   }
   useEffect(() => {
-    load();
-  }, []);
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    api<Direction[]>("/directions", { retry: true, signal: controller.signal })
+      .then((value) => { if (!controller.signal.aborted) setDirections(value); })
+      .catch((e) => { if (!controller.signal.aborted) setError(errorMessage(e)); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [revision]);
   const name = (d: Direction) =>
     locale === "kk" ? d.name_kk : locale === "en" ? d.name_en : d.name_ru;
   return (
