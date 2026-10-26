@@ -21,9 +21,35 @@ logger.propagate = False
 
 METHODS = {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 
+# Only fixed labels may leave this classifier. Driver messages can contain
+# credentials, hostnames and personal data, so never attach their text to logs.
+CONNECTION_FAILURE_REASONS = tuple((re.compile(pattern), label) for pattern, label in (
+    (r"compute(?: time)? quota (?:has been )?exceeded|exceeded (?:the )?compute(?: time)? quota", "compute_quota_exceeded"),
+    (r"endpoint (?:is|has been) disabled", "endpoint_disabled"),
+    (r"password authentication failed|authentication failed", "authentication_failed"),
+    (r'database "[^"\r\n]{1,256}" does not exist', "database_missing"),
+    (r"could not translate host name|could not resolve host|name or service not known|temporary failure in name resolution", "dns_resolution_failed"),
+    (r"connection refused", "connection_refused"),
+    (r"connection timed out|connection timeout expired|timeout expired", "connection_timeout"),
+    (r"certificate verify failed|certificate verification failed|ssl error: certificate", "tls_verification_failed"),
+    (r"ssl connection has been closed unexpectedly|ssl syscall error|tls handshake failed|ssl handshake failed|connection is insecure", "tls_connection_failed"),
+    (r"couldn't connect to compute node", "compute_unavailable"),
+    (r"remaining connection slots are reserved|too many connections", "connection_limit_exceeded"),
+    (r"active endpoints limit exceeded|exceeded the limit of concurrently active endpoints", "endpoint_limit_exceeded"),
+))
+
+
+def connection_failure_reason(driver_error: Exception) -> str | None:
+    """Inspect a bounded driver message; return only a known static reason."""
+    try:
+        message = str(driver_error)[:8192].lower()
+    except Exception:
+        return None
+    return next((label for pattern, label in CONNECTION_FAILURE_REASONS if pattern.search(message)), None)
+
 
 def failure_details(error: Exception) -> dict[str, str]:
-    """Classify failures without rendering exceptions, SQL or driver messages."""
+    """Classify failures without logging exceptions, SQL or driver messages."""
     category = "application"
     for exception_type, label in (
         (OperationalError, "database_operational"),
@@ -40,6 +66,10 @@ def failure_details(error: Exception) -> dict[str, str]:
         code = getattr(error.orig, "sqlstate", None)
         if isinstance(code, str) and re.fullmatch(r"[A-Z0-9]{5}", code):
             details["sqlstate"] = code
+    if isinstance(error, OperationalError):
+        reason = connection_failure_reason(error.orig)
+        if reason:
+            details["error_reason"] = reason
     return details
 
 

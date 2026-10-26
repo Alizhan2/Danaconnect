@@ -16,8 +16,8 @@ PRIVATE = "synthetic-private-token participant@example.test postgresql://user:se
 
 
 class SyntheticDriverError(Exception):
-    def __init__(self, code):
-        super().__init__(PRIVATE)
+    def __init__(self, code, message=PRIVATE):
+        super().__init__(message)
         self.sqlstate = code
 
 
@@ -130,3 +130,64 @@ def test_streaming_error_records_cause_without_leaking_original_exception(monkey
     assert data["sqlstate"] == "08006"
     assert str(interrupted) == "Response interrupted; use the request ID"
     assert interrupted.__suppress_context__
+
+
+@pytest.mark.parametrize("message,reason", [
+    ("Your project has exceeded the compute time quota. Upgrade your plan.", "compute_quota_exceeded"),
+    ("Compute quota exceeded", "compute_quota_exceeded"),
+    ("The endpoint is disabled", "endpoint_disabled"),
+    ("The endpoint has been disabled", "endpoint_disabled"),
+    ('password authentication failed for user "synthetic-user"', "authentication_failed"),
+    ('database "synthetic-db" does not exist', "database_missing"),
+    ('could not translate host name "synthetic-host" to address: Name or service not known', "dns_resolution_failed"),
+    ("Temporary failure in name resolution", "dns_resolution_failed"),
+    ("connection to server failed: Connection refused", "connection_refused"),
+    ("connection to server failed: timeout expired", "connection_timeout"),
+    ("connection timed out", "connection_timeout"),
+    ("SSL error: certificate verify failed", "tls_verification_failed"),
+    ("SSL connection has been closed unexpectedly", "tls_connection_failed"),
+    ("Couldn't connect to compute node", "compute_unavailable"),
+    ("remaining connection slots are reserved for roles with the SUPERUSER attribute", "connection_limit_exceeded"),
+    ("active endpoints limit exceeded", "endpoint_limit_exceeded"),
+])
+def test_known_connection_failures_log_only_a_static_reason(monkeypatch, message, reason):
+    driver = SyntheticDriverError(None, message + "\n" + PRIVATE)
+    error = OperationalError("SELECT " + PRIVATE, {"password": PRIVATE}, driver)
+    record, data, messages, _ = observe(monkeypatch, error=error)
+    assert record.levelno == logging.ERROR
+    assert data["error_category"] == "database_operational"
+    assert data["error_reason"] == reason and "sqlstate" not in data
+    assert message not in record.getMessage()
+    body = json.loads(messages[1]["body"])
+    assert "error_reason" not in body
+    assert PRIVATE not in str(messages)
+
+
+@pytest.mark.parametrize("message", [
+    PRIVATE, "Unrecognized driver failure", "The compute quota is not exceeded",
+    'relation "synthetic-db" does not exist', "database is unavailable",
+])
+def test_unknown_driver_messages_do_not_guess_a_connection_reason(monkeypatch, message):
+    error = OperationalError("SELECT 'password authentication failed' " + PRIVATE,
+                             {"password": PRIVATE}, SyntheticDriverError(None, message))
+    _, data, _, _ = observe(monkeypatch, error=error)
+    assert "error_reason" not in data
+
+
+def test_non_connection_errors_do_not_infer_reasons_from_their_message(monkeypatch):
+    error = ProgrammingError(PRIVATE, {"token": PRIVATE},
+                             SyntheticDriverError("42P01", "connection refused " + PRIVATE))
+    _, data, _, _ = observe(monkeypatch, error=error)
+    assert data["error_category"] == "database_programming"
+    assert "error_reason" not in data
+
+
+def test_unrenderable_driver_message_does_not_break_safe_diagnostics(monkeypatch):
+    class UnrenderableDriverError(Exception):
+        def __str__(self):
+            raise ValueError(PRIVATE)
+
+    error = OperationalError(PRIVATE, {"token": PRIVATE}, UnrenderableDriverError())
+    _, data, _, _ = observe(monkeypatch, error=error)
+    assert data["error_category"] == "database_operational"
+    assert "error_reason" not in data
