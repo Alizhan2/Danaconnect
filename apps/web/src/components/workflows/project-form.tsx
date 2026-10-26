@@ -16,7 +16,7 @@ export function ProjectForm({
   const router = useRouter();
   const action = useAction();
   const { t, locale, tr } = useLocale();
-  const directions = useLoad(() => api<Direction[]>("/directions"));
+  const directions = useLoad(() => api<Direction[]>("/directions", { retry: true }));
   const [draft, setDraft] = useState({
     title: project?.title || "",
     problem: project?.problem || "",

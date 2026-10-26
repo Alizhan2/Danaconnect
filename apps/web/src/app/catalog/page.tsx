@@ -35,7 +35,7 @@ function CatalogContent() {
       if (q) params.set("q", q);
       Promise.all([
         api<Mentor[]>(`/mentors?${params}`, { signal: controller.signal }),
-        api<Direction[]>("/directions", { signal: controller.signal }),
+        api<Direction[]>("/directions", { retry: true, signal: controller.signal }),
       ])
         .then(([m, d]) => {
           if (live) {

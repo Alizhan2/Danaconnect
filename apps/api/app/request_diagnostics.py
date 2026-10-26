@@ -2,9 +2,11 @@
 from datetime import datetime, timezone
 import json
 import logging
+import re
 import time
 import uuid
 
+from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError, ProgrammingError, TimeoutError as PoolTimeoutError
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -18,6 +20,27 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 METHODS = {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+
+
+def failure_details(error: Exception) -> dict[str, str]:
+    """Classify failures without rendering exceptions, SQL or driver messages."""
+    category = "application"
+    for exception_type, label in (
+        (OperationalError, "database_operational"),
+        (ProgrammingError, "database_programming"),
+        (IntegrityError, "database_integrity"),
+        (PoolTimeoutError, "database_pool_timeout"),
+        (DBAPIError, "database_other"),
+    ):
+        if isinstance(error, exception_type):
+            category = label
+            break
+    details = {"error_category": category}
+    if isinstance(error, DBAPIError):
+        code = getattr(error.orig, "sqlstate", None)
+        if isinstance(code, str) and re.fullmatch(r"[A-Z0-9]{5}", code):
+            details["sqlstate"] = code
+    return details
 
 
 class RequestDiagnostics:
@@ -34,6 +57,7 @@ class RequestDiagnostics:
         response_started = False
         status_code = 500
         error_kind = None
+        error_details = None
 
         async def annotated_send(message: Message):
             nonlocal response_started, status_code
@@ -50,8 +74,9 @@ class RequestDiagnostics:
 
         try:
             await self.app(scope, receive, annotated_send)
-        except Exception:
+        except Exception as error:
             error_kind = "server_error"
+            error_details = failure_details(error)
             if response_started:
                 # A streaming response cannot be replaced after its headers.
                 # Do not expose the original exception or its chained values.
@@ -73,4 +98,8 @@ class RequestDiagnostics:
             }
             if error_kind:
                 record["error_kind"] = error_kind
-            logger.info(json.dumps(record, ensure_ascii=True, separators=(",", ":")))
+            failed = bool(error_kind or status_code >= 500)
+            if failed:
+                record.update(error_details or {"error_category": "application"})
+            logger.log(logging.ERROR if failed else logging.INFO,
+                       json.dumps(record, ensure_ascii=True, separators=(",", ":")))
