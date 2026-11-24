@@ -2,9 +2,9 @@
 
 ## Статус
 
-**Обновлено 3 октября 2026.** Рабочая платформа опубликована: [сайт](https://danaconnect.vercel.app/), [отдельная админка](https://danaconnect.vercel.app/admin). Подключены Neon PostgreSQL, Gmail SMTP, private Vercel Blob и QStash. Подтверждения и границы проверки: [облачный выпуск](VERIFICATION_2026-10-02.md), [мобильная приёмка](VERIFICATION_2026-10-03.md), [восстановление и нагрузка](RECOVERY_AND_LOAD_2026-10-03.md). Это наблюдения на указанное время; наличие сервиса не подтверждает все пользовательские сценарии.
+**Обновлено 25 ноября 2026, Asia/Aqtobe.** Рабочая база DanaConnect находится в Supabase, PostgreSQL 17.12, на тарифе Free. Сайт и панель администратора размещены на Vercel. [Рабочий сайт](https://danaconnect.vercel.app/), [вход в панель](https://danaconnect.vercel.app/admin/login), [состояние запуска](LAUNCH_REMAINING.md).
 
-Текущая схема — Vercel Services с внешними Neon и private Blob; QStash вызывает защищённый worker batch каждые две минуты. Дополнительно сохранён вариант Linux/Docker Compose: сайт, админка, FastAPI, постоянный worker, PostgreSQL и Caddy. Docker daemon в этой среде недоступен; Compose runtime не проверен. Его инструкции ниже относятся к отдельному варианту размещения.
+Vercel Services обслуживает сайт, панель администратора и API. Закрытые файлы хранятся в Vercel Blob. QStash вызывает обработчик фоновых задач. Октябрьские отчёты описывают прежнюю базу Neon. Инструкции ниже также охватывают отдельный вариант размещения на Linux с Docker Compose. [Облачный выпуск](VERIFICATION_2026-10-02.md), [мобильная приёмка](VERIFICATION_2026-10-03.md), [восстановление и нагрузка](RECOVERY_AND_LOAD_2026-10-03.md).
 
 ## Для альтернативного Compose и эксплуатации
 
@@ -121,22 +121,21 @@ docker compose --env-file deploy/.env.production -f compose.prod.yml logs --tail
 
 ## 4. Создать администратора с MFA
 
-На доверенном сервере, после миграций:
+Для установки через Compose оператор разрешает первый вход после применения миграций.
 
 ```bash
-docker compose --env-file deploy/.env.production -f compose.prod.yml exec api python -m app.admin_bootstrap --email admin@ваш-домен --name 'Имя администратора' --secret-output /tmp/admin.enrollment.json
-docker compose --env-file deploy/.env.production -f compose.prod.yml cp api:/tmp/admin.enrollment.json /защищённый/путь/admin.enrollment.json
+docker compose --env-file deploy/.env.production -f compose.prod.yml exec api python -m app.admin_bootstrap --email admin@example.org --name 'Имя администратора' --enroll-on-site
 ```
 
-Команда создаёт администратора и TOTP на сервере; публичного bootstrap API нет. Приватный файл с enrollment URI передать непосредственно владельцу аутентификатора. После импорта удалить обе копии конкретного файла; не сохранять его в Git, логах или backup-папке с открытым доступом. Для явно запрошенной ротации используется `--rotate-mfa`, что отзывает прежние сессии. API/worker имеют одного непривилегированного пользователя, `/tmp` доступен; enrollment создаётся с приватными разрешениями. После смены ключа outbox старый ключ нужен в `OUTBOX_PREVIOUS_ENCRYPTION_KEYS` до контролируемой перешифровки MFA и очереди.
+Подставьте адрес и имя администратора. Разрешение действует семь дней. На Vercel ту же операцию выполняет `deploy/provision_admin.py --enroll-on-site` с явно заданной конфигурацией базы. [Операторская команда и приглашения](TEAM_LAUNCH.md).
 
-В `/admin/login`: email OTP → TOTP. Производственный администратор без настроенной MFA не получает рабочую сессию. После входа подготовить утверждённые документы, переводы, направления и материалы; уведомления пользователям придут только при реально работающем worker и провайдере. Генерация документов не заменяет юридическое утверждение их текста.
+Владелец открывает `/admin/login` и подтверждает адрес кодом из письма. При первом входе сайт показывает личный QR и ключ для ручной настройки на том же устройстве. Код из приложения-аутентификатора завершает вход. Для ротации уже настроенного аутентификатора предусмотрен отдельный режим `--rotate-mfa` с отзывом прежних сессий. После смены ключа outbox сохраните старый ключ в `OUTBOX_PREVIOUS_ENCRYPTION_KEYS` до перешифровки MFA и очереди.
 
 ## 5. Backup и восстановление
 
-### Внешний Neon: текущая облачная схема
+### Облачная база приложения
 
-Для backup использовать защищённый файл с **прямым** подключением Neon. Pooled endpoint приложения не заменяет direct connection для `pg_dump`/`pg_restore`: [документация Neon](https://neon.com/docs/connect/connection-pooling). Установить PostgreSQL client tools совместимой версии; `--pg-bin-directory` позволяет указать каталог portable binaries без изменения PATH. В этом этапе source и client — PostgreSQL 18.6.
+Для Supabase в закрытом source env задайте `SUPABASE_DATABASE_URL` с подключением через Session pooler. Этот адрес имеет приоритет над `DATABASE_URL`. Архив содержит схему приложения `public` и её данные. Служебные схемы провайдера остаются в Supabase. CLI проверяет TLS по сертификату из репозитория. Для отдельной PostgreSQL или Neon задайте `DATABASE_URL` с прямым подключением для полного архива БД. Установите PostgreSQL client tools той же основной версии, что и сервер. Параметр `--pg-bin-directory` позволяет указать каталог с утилитами. [Подключения Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres), [подключения Neon](https://neon.com/docs/connect/connection-pooling).
 
 ```powershell
 .venv/Scripts/python.exe deploy/postgres_backup.py backup --source-env-file deploy/.env.backup.local --output-directory deploy/backups --apply
@@ -146,11 +145,11 @@ docker compose --env-file deploy/.env.production -f compose.prod.yml cp api:/tmp
 .venv/Scripts/python.exe deploy/postgres_backup.py restore --source-env-file deploy/.env.backup.local --target-env-file deploy/.env.restore.local --target-database dc_restore_20261003 --backup-file 'C:\защищённый\database.dump' --apply
 ```
 
-Оба env-файла содержат `DATABASE_URL` и остаются закрытыми. Target env указывает на maintenance DB отдельного сервера. Пароли не передаются аргументами и не печатаются; временный passfile имеет ограниченный доступ. Без `--apply` выполняется только offline-проверка конфигурации. `verify` подтверждает SHA256/manifest, но не является восстановлением. Backup создаёт новый private child directory с custom archive, checksum и manifest; исходные данные читаются без записи. Для сравнения точного снимка поддержан `--snapshot`, пока экспортирующая READ ONLY транзакция открыта.
+В отдельном закрытом target env задайте `DATABASE_URL` для служебной БД сервера восстановления. Команда restore использует это подключение для создания новой БД. Пароли не передаются аргументами и не печатаются; временный passfile имеет ограниченный доступ. Без `--apply` выполняется только offline-проверка конфигурации. `verify` подтверждает SHA256/manifest, но не является восстановлением. Backup создаёт новый private child directory с custom archive, checksum и manifest; исходные данные читаются без записи. Для сравнения точного снимка поддержан `--snapshot`, пока экспортирующая READ ONLY транзакция открыта.
 
-Restore создаёт **новую** БД через `template0`, отказывает для существующих/live/default имён и проверяет фактический endpoint/identity. `pg_restore` выполняется одной транзакцией с `--no-owner --no-acl --no-tablespaces`; application роли, права, provider settings и ключи готовятся отдельно. Автоматического переключения Production или удаления базы нет. [pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html), [pg_restore](https://www.postgresql.org/docs/current/app-pgrestore.html).
+Для восстановления нужна отдельная служебная роль с правом создавать БД. Restore создаёт **новую** БД через `template0`, проверяет имя, адрес сервера и пустоту базы. Для архива Supabase он сохраняет существующую схему `public` с владельцем и правами целевого сервера. Затем `pg_restore` восстанавливает объекты и данные одной транзакцией с `--no-owner --no-acl --no-tablespaces`. Перед переключением сайта отдельно настройте роли, права и ключи, восстановите загруженные файлы из резервной копии объектного хранилища. Скрипт не выдаёт дополнительных прав роли работающего приложения. [pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html), [pg_restore](https://www.postgresql.org/docs/current/app-pgrestore.html).
 
-Manifest v2 записывает locale metadata. Текущий CLI восстанавливает UTF8/builtin `C`, `C.UTF-8` или `PG_UNICODE_FAST` при одинаковом PostgreSQL major и проверенной collation version; другие provider/locale требуют отдельной процедуры. По умолчанию LC_COLLATE/LC_CTYPE тоже должны совпасть. Для **изолированного loopback** упражнения Windows с source builtin C.UTF-8 допустим явный `--allow-os-locale-difference`: изменяться могут только OS LC-поля, provider/datlocale/encoding/обе version проверяются строго. Версия collation не форсируется. Это исключение использовано в отчёте; remote target и другие provider/locale им не разрешаются. Promotion этим не подтверждается. [CREATE DATABASE](https://www.postgresql.org/docs/18/sql-createdatabase.html), [locale providers](https://www.postgresql.org/docs/18/locale.html).
+В manifest v2 записаны параметры сортировки и область нового архива (`public` или `database`). Старые архивы v2 без поля `scope` охватывают всю БД. Для архивов Supabase при восстановлении также сверяется отпечаток маршрута проекта из source env. CLI поддерживает UTF8 с builtin `C`, `C.UTF-8`, `PG_UNICODE_FAST` и ICU `en-US` с `LC_COLLATE=LC_CTYPE=en_US.UTF-8` без пользовательских правил ICU. Для ICU требуется та же основная версия PostgreSQL и точное совпадение фактической и записанной версий сортировки исходной и целевой БД. Для **изолированного loopback** упражнения Windows с source builtin C.UTF-8 допустим явный `--allow-os-locale-difference`: изменяться могут только OS LC-поля, provider/datlocale/encoding/обе version проверяются строго. Версия collation не форсируется. Это исключение использовано в отчёте; remote target и другие provider/locale им не разрешаются. Promotion этим не подтверждается. [CREATE DATABASE](https://www.postgresql.org/docs/18/sql-createdatabase.html), [locale providers](https://www.postgresql.org/docs/18/locale.html).
 
 Если исходная БД недоступна, `restore --source-unavailable` позволяет проверить восстановление на отдельном loopback target без source connections/passfile. Имя БД в source env обязано совпасть с v2 manifest; SHA256, новая пустая БД, target identity, major и locale guards сохраняются. Live source identity в этом режиме не проверена; нужно доверенное происхождение архива. Это проверенный локальный outage путь; remote failover требует отдельной процедуры.
 

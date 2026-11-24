@@ -103,7 +103,8 @@ test('public preview has no saving action, does not prevent fields rendering whi
 function loginFixture(user, role = 'mentor', destination = '/catalog') {
   const navigation = []; const requests = []; const values = ['mentor@example.test', '123456', { challenge_id: 'synthetic' }, undefined]; let cursor = 0;
   const module = compile('app/login/page.tsx', {
-    react: { Suspense: 'suspense', useState: () => [values[cursor++], () => {}] },
+    react: { Suspense: 'suspense', useState: () => [values[cursor++], () => {}],
+      useRef: initial => ({ current: initial }), useCallback: fn => fn, useEffect: () => {} },
     'next/navigation': { useRouter: () => ({ push: value => navigation.push(value), refresh: () => {} }), useSearchParams: () => new URLSearchParams({ role, returnTo: destination }) },
     '@/components/shell': { AppShell: 'shell' }, '@/components/ui': { Button: 'button', Field: 'field' }, '@/components/platform-status': { usePlatformStatus: () => ({ health: null }) },
     '@/lib/registration': helpers, '@/lib/api': { api: async path => { requests.push(path); return { authorization_url: 'https://accounts.google.com/o/oauth2/v2/auth?fixture=1' }; } },

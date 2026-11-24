@@ -40,8 +40,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     if user is None or user.account_status == "suspended":
         raise HTTPException(403, "Аккаунт недоступен")
     if user.role == "admin" and admin_mfa_required(db, user):
+        credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id))
         assurance = db.scalar(select(SessionAssurance).where(SessionAssurance.session_id == session.id))
-        if assurance is None:
+        if credential is None or not credential.active or assurance is None:
             raise HTTPException(403, "Администратору требуется двухфакторная аутентификация")
     return user
 
@@ -49,9 +50,17 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 def admin_mfa_required(db: Session, user: User) -> bool:
     if user.role != "admin":
         return False
-    provisioned = db.scalar(select(AdminCredential.id).where(AdminCredential.user_id == user.id, AdminCredential.active.is_(True)))
+    # Pending, expired and disabled credentials must also block the local demo
+    # bypass; only a synthetic account with no credential retains that flow.
+    provisioned = db.scalar(select(AdminCredential.id).where(AdminCredential.user_id == user.id))
     # Existing synthetic local sessions retain their explicitly enabled demo flow.
     return bool(provisioned) or settings.environment == "production" or not settings.auth_debug_code
+
+
+def admin_enrollment_pending(credential: AdminCredential, now=None) -> bool:
+    return (not credential.active and credential.last_used_step == -1
+            and credential.enrollment_expires_at is not None
+            and aware(credential.enrollment_expires_at) > (now or utcnow()))
 
 
 def generate_totp_secret() -> str:

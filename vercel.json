@@ -19,7 +19,7 @@
       "root": "apps/api",
       "framework": "fastapi",
       "entrypoint": "app.main:app",
-      "functions": {"app/main.py": {"includeFiles": "assets/fonts/**"}},
+      "functions": {"app/main.py": {"includeFiles": "assets/**"}},
       "installCommand": "pip install -r requirements.lock.txt"
     }
   },

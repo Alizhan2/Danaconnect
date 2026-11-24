@@ -9,18 +9,19 @@ import json
 import os
 import re
 import subprocess
+from datetime import timedelta
 from pathlib import Path
-from urllib.parse import quote, urlencode
 
 from email_validator import validate_email
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from app.auth import generate_totp_secret
 from app.config import settings
 from app.database import SessionLocal
 from app.delivery import encrypt_text
-from app.models import AuditEvent, SessionToken, User
-from app.models_delivery import AdminCredential, MFAChallenge
+from app.models import AuditEvent, AuthChallenge, SessionToken, User, utcnow
+from app.models_delivery import AdminCredential, MFAChallenge, SessionAssurance
+from app.totp_enrollment import totp_uri
 
 
 def write_private_enrollment(path: Path, payload: dict):
@@ -61,7 +62,7 @@ def write_private_enrollment(path: Path, payload: dict):
         raise
 
 
-def provision_admin(db, *, email: str, name: str, output: Path, rotate_mfa: bool = False):
+def admin_account(db, email: str, name: str):
     email = validate_email(email, check_deliverability=False, test_environment=settings.environment != "production").normalized.lower()
     if not name.strip() or len(name) > 160:
         raise ValueError("Provide an administrator name of 1–160 characters")
@@ -74,6 +75,38 @@ def provision_admin(db, *, email: str, name: str, output: Path, rotate_mfa: bool
         db.flush()
     if user.account_status != "active":
         raise ValueError("Suspended administrators cannot be reactivated by bootstrap")
+    return user
+
+
+def authorize_web_enrollment(db, *, email: str, name: str):
+    user = admin_account(db, email, name)
+    credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id).with_for_update())
+    prior_login = db.scalar(select(AuditEvent.id).where(
+        AuditEvent.entity_id == user.id, AuditEvent.entity_type == "user",
+        AuditEvent.action.in_(("auth.login", "admin.mfa_rotated"))).limit(1))
+    assured_session = db.scalar(select(SessionAssurance.id).join(SessionToken).where(SessionToken.user_id == user.id).limit(1))
+    if prior_login or assured_session or (credential and (credential.last_used_step != -1 or
+            (not credential.active and credential.enrollment_expires_at is None))):
+        raise ValueError("First-time setup is unavailable for an established or disabled authenticator")
+    if credential is None:
+        credential = AdminCredential(user_id=user.id, encrypted_totp_secret="")
+        db.add(credential)
+    credential.active = False
+    now = utcnow()
+    credential.enrollment_expires_at = now + timedelta(days=7)
+    db.execute(update(AuthChallenge).where(AuthChallenge.email == user.email,
+               AuthChallenge.consumed_at.is_(None)).values(consumed_at=now))
+    db.execute(delete(SessionToken).where(SessionToken.user_id == user.id))
+    db.execute(delete(MFAChallenge).where(MFAChallenge.user_id == user.id))
+    db.add(AuditEvent(action="admin.web_enrollment_authorized", entity_type="user",
+                      entity_id=user.id, detail={"method": "offline_operator"}))
+    db.commit()
+    return user.id
+
+
+def provision_admin(db, *, email: str, name: str, output: Path, rotate_mfa: bool = False):
+    user = admin_account(db, email, name)
+    email = user.email
     credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id))
     if credential and not rotate_mfa:
         raise ValueError("MFA already provisioned; explicit --rotate-mfa is required")
@@ -81,14 +114,14 @@ def provision_admin(db, *, email: str, name: str, output: Path, rotate_mfa: bool
     encrypted = encrypt_text(secret)
     if credential:
         credential.encrypted_totp_secret, credential.last_used_step, credential.active = encrypted, -1, True
+        credential.enrollment_expires_at = None
     else:
         db.add(AdminCredential(user_id=user.id, encrypted_totp_secret=encrypted))
     db.execute(delete(SessionToken).where(SessionToken.user_id == user.id))
     db.execute(delete(MFAChallenge).where(MFAChallenge.user_id == user.id))
     db.add(AuditEvent(actor_id=None, action="admin.mfa_rotated" if credential else "admin.provisioned", entity_type="user", entity_id=user.id, detail={"method": "offline_operator"}))
-    uri = "otpauth://totp/" + quote("DanaConnect:" + email, safe="") + "?" + urlencode({"secret": secret, "issuer": "DanaConnect", "algorithm": "SHA1", "digits": "6", "period": "30"})
     write_private_enrollment(output, {
-        "account": email, "issuer": "DanaConnect", "totp_uri": uri,
+        "account": email, "issuer": "DanaConnect", "totp_uri": totp_uri(email, secret),
         "manual_entry_key": secret,
         "instructions": "Import the URI or add manual_entry_key as a time-based account in your authenticator, then remove this enrollment file. This file contains a secret.",
     })
@@ -105,10 +138,18 @@ def main():
     parser = argparse.ArgumentParser(description="Provision an administrator and MFA offline; never sends email")
     parser.add_argument("--email", required=True)
     parser.add_argument("--name", required=True)
-    parser.add_argument("--secret-output", required=True, type=Path)
+    enrollment = parser.add_mutually_exclusive_group(required=True)
+    enrollment.add_argument("--secret-output", type=Path)
+    enrollment.add_argument("--enroll-on-site", action="store_true", help="Allow first-time setup after email verification for seven days")
     parser.add_argument("--rotate-mfa", action="store_true")
     args = parser.parse_args()
+    if args.enroll_on_site and args.rotate_mfa:
+        parser.error("On-site first-time setup cannot rotate a verified authenticator")
     with SessionLocal() as db:
+        if args.enroll_on_site:
+            authorize_web_enrollment(db, email=args.email, name=args.name)
+            print("First-time authenticator setup is available on the admin login page for seven days.")
+            return
         identifier = provision_admin(db, email=args.email, name=args.name, output=args.secret_output, rotate_mfa=args.rotate_mfa)
     print("Administrator provisioned:", identifier)
     print("Private authenticator enrollment saved to the specified file. No email sent.")

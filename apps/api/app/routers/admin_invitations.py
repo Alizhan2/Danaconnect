@@ -1,17 +1,12 @@
 """Admin admission: assured inviter, mailbox proof, then private TOTP enrollment."""
-import base64
 from datetime import timedelta
-import io
 from math import ceil
 import secrets
 from typing import Literal
-from urllib.parse import quote, urlencode
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
-import qrcode
-from qrcode.image.svg import SvgPathFillImage
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -28,6 +23,7 @@ from app.schemas.identity import RequestCode
 from app.transactions import lock_users
 from app.otp_limits import lock_otp_email
 from app.admin_invitation_lifecycle import close_invitation
+from app.totp_enrollment import qr_data_url, totp_uri
 
 
 router = APIRouter()
@@ -280,13 +276,6 @@ def request_invitation_code(payload: InvitationToken, request: Request, db: Sess
     return result
 
 
-def qr_data_url(uri):
-    # Pure Python SVG generation; the MFA secret never reaches a QR provider.
-    buffer = io.BytesIO()
-    qrcode.make(uri, image_factory=SvgPathFillImage, border=4).save(buffer)
-    return "data:image/svg+xml;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
-
-
 @router.post("/auth/admin-invitations/verify-code")
 def verify_invitation_code(payload: InvitationCode, db: Session = Depends(get_db)):
     invitation = locked_invitation(db, token=payload.token)
@@ -315,8 +304,7 @@ def verify_invitation_code(payload: InvitationCode, db: Session = Depends(get_db
         invitation.proof_hash = secret_hash(proof)
         invitation.proof_expires_at = min(now + timedelta(minutes=5), aware(invitation.expires_at))
         invitation.proof_attempts = 0
-        uri = "otpauth://totp/" + quote("DanaConnect:" + invitation.email, safe="") + "?" + urlencode({
-            "secret": seed, "issuer": "DanaConnect", "algorithm": "SHA1", "digits": 6, "period": 30})
+        uri = totp_uri(invitation.email, seed)
         image = qr_data_url(uri)
         db.commit()
     except DeliveryUnavailable:

@@ -19,7 +19,7 @@ function runtime(app, overrides={}) {
     useCallback:value=>value,useMemo:callback=>callback(),useRef:value=>({current:value}),
     useContext:context=>context.value,
   };
-  const context=vm.createContext({URL,Headers,Response,FormData,AbortSignal,Error,console,
+  const context=vm.createContext({URL,Headers,Response,FormData,AbortSignal,AbortController,Error,console,
     process:{env:{NEXT_PUBLIC_ADMIN_BASE_PATH:'/admin'},cwd:()=>path.join(root,`apps/${app}`)},Event,URLSearchParams,
     document:{documentElement:{lang:'ru'}},localStorage:{getItem:()=>null,setItem:()=>{}},...overrides});
   const cache=new Map();
@@ -113,6 +113,36 @@ test('admin MFA and navigation labels exist in all three locales',()=>{
     for(const label of ['mfa','mfaCode','mfaExpired','mfaInvalid','mfaTimeLeft','directions','documents','registrations','operations'])assert.ok(t(label));
   }
 });
+
+test('public login shows only the verified enrollment QR and retains manual setup if the image fails',()=>{
+  const manualKey='SYNTHETIC-SETUP-KEY';
+  const dataUrl='data:image/svg+xml;base64,PHN2Zy8+';
+  const mfa={mfa_required:true,mfa_challenge_id:'test-challenge',method:'totp',expires_in:300,deadline:Date.now()+300000};
+  for(const [qr,failed,expectedImage,expectedKey] of [
+    [undefined,false,false,false],
+    [dataUrl,false,true,true],
+    [dataUrl,true,false,true],
+    ['https://example.invalid/qr.png',false,false,true],
+  ]){
+    const response=qr?{...mfa,enrollment:{qr_data_url:qr,manual_entry_key:manualKey}}:mfa;
+    const rt=runtime('web',{
+      states:['admin@example.test','',{challenge_id:'test-email'},response,false,failed],
+      privateFunctions:{'app/login/page.tsx':['Login']},
+      modules:{
+        'next/navigation':{useRouter:()=>({}),useSearchParams:()=>new URLSearchParams()},
+        '@/components/shell':{AppShell:'shell'},
+        '@/components/platform-status':{usePlatformStatus:()=>({})},
+        '@/lib/i18n':{useLocale:()=>({locale:'ru',t:{},tr:value=>value})},
+        '@/components/workflows/common':{useAction:()=>({}),useLoad:()=>({}),safeReturnTo:()=>'/dashboard'},
+      },
+    });
+    const tree=nodes(rt.load('app/login/page.tsx').__Login());
+    const img=tree.find(node=>node?.type==='img');
+    assert.equal(Boolean(img),expectedImage);
+    if(img){assert.equal(img.props.src,dataUrl);assert.equal(img.props.referrerPolicy,'no-referrer');}
+    assert.equal(tree.includes(manualKey),expectedKey);
+  }
+});
 test('admin locale settings keep working when browser storage is blocked',()=>{
   const rt=runtime('admin',{localStorage:{getItem:()=>{throw new Error('Storage blocked');},setItem:()=>{throw new Error('Storage blocked');}}});
   rt.load('lib/i18n.tsx').LocaleProvider({children:null});
@@ -184,6 +214,66 @@ test('profile save publishes its refresh event only after a successful API updat
     else{await form.props.onSubmit({preventDefault:()=>{}});assert.deepEqual(steps,['PUT /me/profile','danaconnect:profile-updated','reload']);}
   }
 });
+test('opted-in directions reads recover from temporary server and network failures',async()=>{
+  for(const first of ['network',500,502,503,504]){
+    let calls=0;
+    const rt=runtime('web',{setTimeout:callback=>setTimeout(callback,0),fetch:async(url,options)=>{
+      calls++;assert.equal(options.retry,undefined);
+      if(calls===1){if(first==='network')throw new Error('Disconnected');return Response.json({detail:'Unavailable'},{status:first});}
+      return Response.json([{id:'live-direction'}]);
+    }});
+    assert.equal((await rt.load('lib/api.ts').api('/directions',{retry:true}))[0].id,'live-direction');
+    assert.equal(calls,2);
+  }
+});
+test('a tablet without AbortSignal.any can load directions and cancel a pending read', async () => {
+  const caller = new AbortController();
+  const deadline = new AbortController();
+  let pending = false;
+  const rt = runtime('web', {
+    AbortSignal: { timeout: () => deadline.signal },
+    fetch: async (url, { signal }) => {
+      if (!pending) return Response.json([{ id: 'test-direction' }]);
+      return new Promise((resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true });
+      });
+    },
+  });
+  const { api } = rt.load('lib/api.ts');
+  const options = { signal: caller.signal, retry: true };
+  assert.equal((await api('/directions', options))[0].id, 'test-direction');
+  pending = true;
+  const read = api('/directions', options);
+  caller.abort();
+  await assert.rejects(read, error => error.status === 0);
+  const timedRead = api('/directions', { ...options, signal: new AbortController().signal });
+  deadline.abort();
+  await assert.rejects(timedRead, error => error.status === 0);
+});
+test('directions retries are bounded and retain the final request ID',async()=>{
+  let calls=0;const requestId='553ac0cf-319a-42ce-ac27-aa78a3b43353';
+  const rt=runtime('web',{setTimeout:callback=>setTimeout(callback,0),fetch:async()=>{
+    calls++;return Response.json({detail:'Still unavailable'},{status:503,headers:{'X-Request-ID':requestId}});
+  }});
+  await assert.rejects(rt.load('lib/api.ts').api('/directions',{retry:true}),e=>e.status===503&&e.requestId===requestId);
+  assert.equal(calls,3);
+});
+test('reads without opt-in, validation errors and mutations are never retried',async()=>{
+  for(const [status,options] of [[500,{}],[403,{retry:true}],[422,{retry:true}],[500,{retry:true,method:'POST',body:'{}'}]]){
+    let calls=0;
+    const rt=runtime('web',{fetch:async()=>{calls++;return Response.json({detail:'Failure'},{status});}});
+    await assert.rejects(rt.load('lib/api.ts').api('/directions',options));
+    assert.equal(calls,1);
+  }
+});
+test('cancelling a directions load during backoff prevents further requests',async()=>{
+  let calls=0;const controller=new AbortController();
+  const rt=runtime('web',{setTimeout:callback=>{controller.abort();callback();},fetch:async()=>{
+    calls++;return Response.json({detail:'Unavailable'},{status:503});
+  }});
+  await assert.rejects(rt.load('lib/api.ts').api('/directions',{retry:true,signal:controller.signal}),e=>e.status===0);
+  assert.equal(calls,1);
+});
 for(const app of ['web','admin']){
   test(`${app} config protects HTML responses with conservative headers`,async()=>{
     const config=runtime(app).load('../next.config.ts').default;
@@ -211,3 +301,16 @@ for(const app of ['web','admin']){
     await assert.rejects(network.api('/example'),error=>error.status===0);
   });
 }
+
+test('admin direction and document slugs match API limits using HTML pattern syntax',()=>{
+  for(const [page,form,max] of [['directions','DirectionForm',60],['documents','DocumentForm',80]]){
+    const file=`app/${page}/page.tsx`;
+    const rt=runtime('admin',{privateFunctions:{[file]:[form]}});
+    const tree=nodes(rt.load(file)[`__${form}`]({directions:[],onSaved:async()=>{}}));
+    const slug=tree.find(node=>node?.type==='input' && node.props.maxLength===max);
+    assert.equal(typeof slug?.props.pattern,'string');
+    const accepts=new RegExp(`^(?:${slug.props.pattern})$`,'v');
+    for(const valid of ['az','tablet-check','t2','a'.repeat(max)]) assert.ok(accepts.test(valid));
+    for(const invalid of ['a','1a','Two Words','a/b','a_2','a'.repeat(max+1)]) assert.equal(accepts.test(invalid),false);
+  }
+});

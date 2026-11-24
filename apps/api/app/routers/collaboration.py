@@ -42,7 +42,7 @@ def member(db, project, user):
     return user.id in {project.owner_id, project.mentor_id} or db.scalar(select(ProjectMember.id).where(ProjectMember.project_id == project.id, ProjectMember.user_id == user.id)) is not None
 
 
-def private_permission(db, project, user, *, allow_invitee=False):
+def private_permission(db, project, user, *, allow_invitee=False, require_mentor_nda=False):
     if user.account_status != "active" or (user.role != "admin" and not admitted_profile(user)) or not has_current_consents(db, user):
         raise HTTPException(403, "Аккаунт не допущен к закрытым материалам")
     if user.role != "admin" and not member(db, project, user) and not allow_invitee:
@@ -57,7 +57,7 @@ def private_permission(db, project, user, *, allow_invitee=False):
         if version is None:
             raise HTTPException(503, "Обязательный NDA ещё не опубликован")
         versions.append(version.id)
-    if user.role == "mentor" and settings.environment == "production" and not versions:
+    if user.role == "mentor" and (settings.environment == "production" or require_mentor_nda) and not versions:
         raise HTTPException(503, "Для доступа ментора необходимо опубликовать актуальный NDA")
     accepted = set(db.scalars(select(Consent.document_version_id).where(Consent.user_id == user.id)).all())
     if not set(versions) <= accepted:

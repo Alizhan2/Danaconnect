@@ -23,7 +23,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from urllib.parse import parse_qsl, unquote, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, unquote, urlencode, urlsplit, urlunsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,7 +149,7 @@ def print_plan(chain: list[Revision], expected: str | None):
     print("No seed, downgrade or backup is performed. Stop other migration runners before applying.")
 
 
-def postgres_url(value: str) -> str:
+def postgres_url(value: str, *, supabase_pooler: bool = False) -> str:
     """Validate transport without opening a socket or printing URL components."""
     if not value or any(character.isspace() for character in value):
         raise OperatorError("A complete PostgreSQL DATABASE_URL is required.")
@@ -168,11 +168,18 @@ def postgres_url(value: str) -> str:
     if len({key for key, _ in pairs}) != len(pairs) or any(key not in allowed for key, _ in pairs):
         raise OperatorError("DATABASE_URL contains unsupported or repeated connection options.")
     options = dict(pairs)
+    query = parsed.query
+    if supabase_pooler:
+        if parsed.scheme == "postgres" or not parsed.hostname.endswith(".pooler.supabase.com"):
+            raise OperatorError("SUPABASE_DATABASE_URL must use the managed PostgreSQL pooler.")
+        options["sslmode"] = "verify-full"
+        options["sslrootcert"] = str(API / "assets/certs/supabase-prod-ca-2021.crt")
+        query = urlencode(options)
     if options.get("sslmode") not in {"require", "verify-ca", "verify-full"}:
         raise OperatorError("PostgreSQL TLS is required: set sslmode=require, verify-ca or verify-full.")
     if "connect_timeout" in options and (not options["connect_timeout"].isdigit() or not 1 <= int(options["connect_timeout"]) <= 30):
         raise OperatorError("PostgreSQL connect_timeout must be between 1 and 30 seconds.")
-    return urlunsplit(("postgresql+psycopg", parsed.netloc, parsed.path, parsed.query, ""))
+    return urlunsplit(("postgresql+psycopg", parsed.netloc, parsed.path, query, ""))
 
 
 def private_environment(values: dict[str, str], chain: list[Revision]) -> dict[str, str]:
@@ -185,7 +192,11 @@ def private_environment(values: dict[str, str], chain: list[Revision]) -> dict[s
     # Settings.vercel is an explicit environment alias when root enables Vercel.
     fields.add("VERCEL")
     environment.update({key: value for key, value in values.items() if key.upper() in fields})
-    environment["DATABASE_URL"] = postgres_url(values.get("DATABASE_URL", ""))
+    if pooler_url := values.get("SUPABASE_DATABASE_URL"):
+        environment["DATABASE_URL"] = postgres_url(pooler_url, supabase_pooler=True)
+        environment["SUPABASE_DATABASE_URL"] = environment["DATABASE_URL"]
+    else:
+        environment["DATABASE_URL"] = postgres_url(values.get("DATABASE_URL", ""))
     environment["PYTHONPATH"] = str(API)
     environment["PYTHONUTF8"] = "1"
     environment["PYTHONIOENCODING"] = "utf-8"
