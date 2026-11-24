@@ -115,6 +115,7 @@ jobs:
       - run: npm run typecheck
         working-directory: apps/admin
       - run: node scripts/admin-invitation-tests.mjs
+      - run: node scripts/admin-login-tests.mjs
       - run: node scripts/admin-registration-tests.mjs
       - run: npm run build
         working-directory: apps/admin

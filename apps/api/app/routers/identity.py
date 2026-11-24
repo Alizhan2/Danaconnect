@@ -17,7 +17,7 @@ from sqlalchemy import String, cast, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import admin_mfa_required, aware, current_required_versions, get_current_user, has_current_consents, matching_totp_step, requested_locale, required_document_state, require_active, require_admin, secret_hash, utcnow
+from app.auth import admin_enrollment_pending, admin_mfa_required, aware, current_required_versions, generate_totp_secret, get_current_user, has_current_consents, matching_totp_step, requested_locale, required_document_state, require_active, require_admin, secret_hash, utcnow
 from app.config import settings
 from app.database import get_db
 from app.models import AuditEvent, AuthChallenge, Consent, Direction, Document, DocumentVersion, Notification, Participation, RegistrationReview, SessionToken, User
@@ -28,6 +28,7 @@ from app.profile_state import MENTOR_COMMITMENT_VERSION, admitted_profile, profi
 from app.models_delivery import AdminCredential, EmailOutbox, ExternalIdentity, MFAChallenge, OAuthState, SessionAssurance
 from app.models_admin_invitations import AdminInvitationChallenge
 from app.delivery import DeliveryFailure, DeliveryUnavailable, decrypt_text, delivery_ready, dispatch_email_now, encrypt_text, enqueue_email, google_ready, otp_email
+from app.totp_enrollment import qr_data_url, totp_uri
 
 
 router = APIRouter()
@@ -122,6 +123,12 @@ def request_code(payload: RequestCode, request: Request, db: Session = Depends(g
 
 
 def issue_session(db, user, response, *, mfa_verified=False):
+    if user.role == "admin" and user.account_status != "active":
+        raise HTTPException(403, "Аккаунт недоступен")
+    if user.role == "admin" and admin_mfa_required(db, user):
+        credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id))
+        if not mfa_verified or credential is None or not credential.active or user.account_status != "active":
+            raise HTTPException(403, "Администратору требуется двухфакторная аутентификация")
     token = secrets.token_urlsafe(48)
     session = SessionToken(user_id=user.id, token_hash=secret_hash(token), expires_at=utcnow() + timedelta(days=settings.session_days))
     db.add(session)
@@ -146,28 +153,60 @@ def verify_code(payload: VerifyCode, request: Request, response: Response, db: S
         db.execute(update(AuthChallenge).where(AuthChallenge.id == challenge.id, AuthChallenge.consumed_at.is_(None)).values(attempts=AuthChallenge.attempts + 1))
         db.commit()
         raise invalid
+    email = challenge.email
+    user = db.scalar(select(User).where(User.email == email))
+    if user is not None:
+        # Acquire the shared user lock BEFORE consuming the email challenge:
+        # lock_users starts a fresh transaction and must not undo that consume.
+        user_id = user.id
+        user = lock_users(db, [user_id])[user_id]
+        now = utcnow()
     consumed = db.execute(update(AuthChallenge).where(AuthChallenge.id == challenge.id, AuthChallenge.consumed_at.is_(None), AuthChallenge.attempts < settings.otp_max_attempts, AuthChallenge.expires_at > now).values(consumed_at=now))
     if consumed.rowcount != 1:
         db.rollback()
         raise invalid
-    user = db.scalar(select(User).where(User.email == challenge.email))
     if not user:
-        user = User(email=challenge.email, preferred_locale=requested_locale(request))
+        user = User(email=email, preferred_locale=requested_locale(request))
         db.add(user)
         db.flush()
-    if user.account_status == "suspended":
+    if user.account_status == "suspended" or (user.role == "admin" and user.account_status != "active"):
         db.commit()
         raise HTTPException(403, "Аккаунт недоступен")
     if admin_mfa_required(db, user):
-        credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id, AdminCredential.active.is_(True)))
-        if credential is None:
+        credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id).with_for_update())
+        now = utcnow()
+        pending = credential is not None and admin_enrollment_pending(credential, now)
+        if credential is None or (not credential.active and not pending):
             db.commit()
             raise HTTPException(503, "Администратору нужно настроить MFA через оператора платформы")
+        expires_at = now + timedelta(minutes=settings.admin_mfa_minutes)
+        enrollment = None
+        if pending:
+            expires_at = min(expires_at, aware(credential.enrollment_expires_at))
+            # Every fresh mailbox proof rotates the pending seed. Never decrypt
+            # or expose a previously stored (pending or active) TOTP secret.
+            try:
+                seed = generate_totp_secret()
+                encrypted_seed = encrypt_text(seed)
+                image = qr_data_url(totp_uri(user.email, seed))
+            except Exception:
+                db.rollback()
+                raise HTTPException(503, "Настройка MFA временно недоступна") from None
+            if expires_at <= utcnow():
+                db.rollback()
+                raise HTTPException(410, "Время настройки MFA истекло. Обратитесь к оператору")
+            credential.encrypted_totp_secret = encrypted_seed
+            enrollment = {"qr_data_url": image, "manual_entry_key": seed}
+            audit(db, user, "admin.mfa_enrollment_started", "user", user.id, {"method": "email_otp"})
         mfa_token = secrets.token_urlsafe(48)
         db.execute(update(MFAChallenge).where(MFAChallenge.user_id == user.id, MFAChallenge.consumed_at.is_(None)).values(consumed_at=now))
-        db.add(MFAChallenge(user_id=user.id, token_hash=secret_hash(mfa_token), expires_at=now + timedelta(minutes=settings.admin_mfa_minutes)))
+        db.add(MFAChallenge(user_id=user.id, token_hash=secret_hash(mfa_token), expires_at=expires_at))
         db.commit()
-        return {"mfa_required": True, "mfa_challenge_id": mfa_token, "method": "totp", "expires_in": settings.admin_mfa_minutes * 60}
+        response.headers["Cache-Control"] = "no-store"
+        result = {"mfa_required": True, "mfa_challenge_id": mfa_token, "method": "totp", "expires_in": max(1, int((expires_at - now).total_seconds()))}
+        if enrollment:
+            result["enrollment"] = enrollment
+        return result
     return issue_session(db, user, response)
 
 
@@ -180,25 +219,57 @@ def verify_mfa(payload: MFAVerify, response: Response, db: Session = Depends(get
         raise HTTPException(410, "Время подтверждения MFA истекло или попытки завершены. Запросите новый код по email. Повторно сканировать QR не нужно.")
     if not challenge:
         raise invalid
-    user = lock_users(db, [challenge.user_id]).get(challenge.user_id)
+    challenge_id, user_id = challenge.id, challenge.user_id
+    user = lock_users(db, [user_id]).get(user_id)
+    now = utcnow()
+    challenge = db.get(MFAChallenge, challenge_id, populate_existing=True)
+    if not challenge or challenge.consumed_at or aware(challenge.expires_at) <= now or challenge.attempts >= settings.otp_max_attempts:
+        raise HTTPException(410, "Время подтверждения MFA истекло или попытки завершены. Запросите новый код по email. Повторно сканировать QR не нужно.")
     if not user or user.role != "admin" or user.account_status != "active":
         raise invalid
-    credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id, AdminCredential.active.is_(True)))
-    if not credential:
+    credential = db.scalar(select(AdminCredential).where(AdminCredential.user_id == user.id).with_for_update())
+    now = utcnow()
+    if aware(challenge.expires_at) <= now:
+        raise HTTPException(410, "Время подтверждения MFA истекло. Запросите новый код по email")
+    if credential and not credential.active and credential.enrollment_expires_at is not None and aware(credential.enrollment_expires_at) <= now:
+        raise HTTPException(410, "Время настройки MFA истекло. Обратитесь к оператору")
+    pending = credential is not None and admin_enrollment_pending(credential, now)
+    if not credential or (not credential.active and not pending) or not credential.encrypted_totp_secret:
         raise invalid
     try:
         step = matching_totp_step(decrypt_text(credential.encrypted_totp_secret), payload.code, credential.last_used_step)
-    except (DeliveryFailure, DeliveryUnavailable):
+    except (DeliveryFailure, DeliveryUnavailable, ValueError, TypeError):
         raise HTTPException(503, "MFA временно недоступна. Обратитесь к оператору")
     if step is None:
+        attempts = challenge.attempts + 1
         db.execute(update(MFAChallenge).where(MFAChallenge.id == challenge.id, MFAChallenge.consumed_at.is_(None)).values(attempts=MFAChallenge.attempts + 1))
+        if pending and attempts >= settings.otp_max_attempts:
+            credential.encrypted_totp_secret = ""
+            db.execute(update(MFAChallenge).where(MFAChallenge.user_id == user.id, MFAChallenge.consumed_at.is_(None)).values(consumed_at=now))
         db.commit()
         raise invalid
+    # Decryption and code validation may take time; expiration at the point of
+    # activation must use a fresh clock, not the pre-lock challenge snapshot.
+    now = utcnow()
+    if aware(challenge.expires_at) <= now or (pending and aware(credential.enrollment_expires_at) <= now):
+        db.rollback()
+        raise HTTPException(410, "Время настройки MFA истекло. Запросите новый код по email")
     consumed = db.execute(update(MFAChallenge).where(MFAChallenge.id == challenge.id, MFAChallenge.consumed_at.is_(None), MFAChallenge.attempts < settings.otp_max_attempts, MFAChallenge.expires_at > now).values(consumed_at=now))
-    updated = db.execute(update(AdminCredential).where(AdminCredential.id == credential.id, AdminCredential.active.is_(True), AdminCredential.last_used_step < step).values(last_used_step=step))
+    credential_checks = [AdminCredential.id == credential.id, AdminCredential.last_used_step < step,
+                         AdminCredential.encrypted_totp_secret == credential.encrypted_totp_secret]
+    values = {"last_used_step": step}
+    if pending:
+        credential_checks.extend([AdminCredential.active.is_(False), AdminCredential.last_used_step == -1,
+                                  AdminCredential.enrollment_expires_at > now])
+        values.update(active=True, enrollment_expires_at=None)
+    else:
+        credential_checks.append(AdminCredential.active.is_(True))
+    updated = db.execute(update(AdminCredential).where(*credential_checks).values(**values))
     if consumed.rowcount != 1 or updated.rowcount != 1:
         db.rollback()
         raise invalid
+    if pending:
+        audit(db, user, "admin.mfa_enrolled", "user", user.id, {"method": "email_otp_totp"})
     return issue_session(db, user, response, mfa_verified=True)
 
 

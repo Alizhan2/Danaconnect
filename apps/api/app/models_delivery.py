@@ -35,6 +35,7 @@ class AdminCredential(Base):
     encrypted_totp_secret: Mapped[str] = mapped_column(Text)
     last_used_step: Mapped[int] = mapped_column(Integer, default=-1)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    enrollment_expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = timestamp()
 
 
