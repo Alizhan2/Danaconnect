@@ -25,9 +25,12 @@ export async function api<T>(
     headers.set("Content-Type", "application/json");
   const { retry = false, ...requestOptions } = options;
   const timeout = AbortSignal.timeout(20000);
-  const signal = options.signal
-    ? AbortSignal.any([options.signal, timeout])
-    : timeout;
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const abort = () => controller.abort();
+  if (options.signal?.aborted) abort();
+  options.signal?.addEventListener("abort", abort, { once: true });
+  timeout.addEventListener("abort", abort, { once: true });
   // Retry only explicitly opted-in reads, within the original timeout budget.
   // Mutations must never be replayed after an ambiguous response.
   const canRetry = (attempt: number) => retry &&
@@ -55,23 +58,29 @@ export async function api<T>(
     await new Promise<void>((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
     return request(attempt + 1);
   }
-  const response = await request(0);
-  const data =
-    response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) {
-    const detail =
-      typeof data?.detail === "string"
-        ? data.detail
-        : response.status === 401
-          ? "Войдите в аккаунт, чтобы продолжить."
-          : response.status === 403
-            ? "Это действие недоступно для вашего аккаунта."
-            : "Не удалось выполнить запрос. Повторите попытку.";
-    const headerId = response.headers.get("X-Request-ID");
-    const requestId = headerId && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(headerId) ? headerId : undefined;
-    throw new ApiError(response.status, detail, requestId);
+  try {
+    const response = await request(0);
+    const data =
+      response.status === 204 ? null : await response.json().catch(() => null);
+    if (signal.aborted) throw networkError();
+    if (!response.ok) {
+      const detail =
+        typeof data?.detail === "string"
+          ? data.detail
+          : response.status === 401
+            ? "Войдите в аккаунт, чтобы продолжить."
+            : response.status === 403
+              ? "Это действие недоступно для вашего аккаунта."
+              : "Не удалось выполнить запрос. Повторите попытку.";
+      const headerId = response.headers.get("X-Request-ID");
+      const requestId = headerId && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(headerId) ? headerId : undefined;
+      throw new ApiError(response.status, detail, requestId);
+    }
+    return data as T;
+  } finally {
+    options.signal?.removeEventListener("abort", abort);
+    timeout.removeEventListener("abort", abort);
   }
-  return data as T;
 }
 export function errorMessage(error: unknown) {
   const message = translatePhrase(

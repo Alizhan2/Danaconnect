@@ -19,7 +19,7 @@ function runtime(app, overrides={}) {
     useCallback:value=>value,useMemo:callback=>callback(),useRef:value=>({current:value}),
     useContext:context=>context.value,
   };
-  const context=vm.createContext({URL,Headers,Response,FormData,AbortSignal,Error,console,
+  const context=vm.createContext({URL,Headers,Response,FormData,AbortSignal,AbortController,Error,console,
     process:{env:{NEXT_PUBLIC_ADMIN_BASE_PATH:'/admin'},cwd:()=>path.join(root,`apps/${app}`)},Event,URLSearchParams,
     document:{documentElement:{lang:'ru'}},localStorage:{getItem:()=>null,setItem:()=>{}},...overrides});
   const cache=new Map();
@@ -225,6 +225,30 @@ test('opted-in directions reads recover from temporary server and network failur
     assert.equal((await rt.load('lib/api.ts').api('/directions',{retry:true}))[0].id,'live-direction');
     assert.equal(calls,2);
   }
+});
+test('a tablet without AbortSignal.any can load directions and cancel a pending read', async () => {
+  const caller = new AbortController();
+  const deadline = new AbortController();
+  let pending = false;
+  const rt = runtime('web', {
+    AbortSignal: { timeout: () => deadline.signal },
+    fetch: async (url, { signal }) => {
+      if (!pending) return Response.json([{ id: 'test-direction' }]);
+      return new Promise((resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true });
+      });
+    },
+  });
+  const { api } = rt.load('lib/api.ts');
+  const options = { signal: caller.signal, retry: true };
+  assert.equal((await api('/directions', options))[0].id, 'test-direction');
+  pending = true;
+  const read = api('/directions', options);
+  caller.abort();
+  await assert.rejects(read, error => error.status === 0);
+  const timedRead = api('/directions', { ...options, signal: new AbortController().signal });
+  deadline.abort();
+  await assert.rejects(timedRead, error => error.status === 0);
 });
 test('directions retries are bounded and retain the final request ID',async()=>{
   let calls=0;const requestId='553ac0cf-319a-42ce-ac27-aa78a3b43353';
