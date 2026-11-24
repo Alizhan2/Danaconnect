@@ -301,3 +301,16 @@ for(const app of ['web','admin']){
     await assert.rejects(network.api('/example'),error=>error.status===0);
   });
 }
+
+test('admin direction and document slugs match API limits using HTML pattern syntax',()=>{
+  for(const [page,form,max] of [['directions','DirectionForm',60],['documents','DocumentForm',80]]){
+    const file=`app/${page}/page.tsx`;
+    const rt=runtime('admin',{privateFunctions:{[file]:[form]}});
+    const tree=nodes(rt.load(file)[`__${form}`]({directions:[],onSaved:async()=>{}}));
+    const slug=tree.find(node=>node?.type==='input' && node.props.maxLength===max);
+    assert.equal(typeof slug?.props.pattern,'string');
+    const accepts=new RegExp(`^(?:${slug.props.pattern})$`,'v');
+    for(const valid of ['az','tablet-check','t2','a'.repeat(max)]) assert.ok(accepts.test(valid));
+    for(const invalid of ['a','1a','Two Words','a/b','a_2','a'.repeat(max+1)]) assert.equal(accepts.test(invalid),false);
+  }
+});
