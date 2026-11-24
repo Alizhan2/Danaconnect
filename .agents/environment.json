@@ -1,0 +1,3 @@
+{
+  "install": "sed -i '/case \\$- in/,/esac/d' ~/.bashrc 2>/dev/null || true; [ -d .venv ] || python3 -m venv .venv; .venv/bin/pip install --no-input -q -r apps/api/requirements.lock.txt; grep -qxF \"export PATH=\\\"$PWD/.venv/bin:\\$PATH\\\"\" ~/.bashrc || echo \"export PATH=\\\"$PWD/.venv/bin:\\$PATH\\\"\" >> ~/.bashrc; for svc in api web admin; do [ -f \"apps/$svc/.env\" ] || [ ! -f \"apps/$svc/.env.example\" ] || cp \"apps/$svc/.env.example\" \"apps/$svc/.env\"; done; npm --prefix apps/web ci --no-audit --no-fund && npm --prefix apps/admin ci --no-audit --no-fund && (cd apps/api && ../../.venv/bin/alembic upgrade head)"
+}
