@@ -1,9 +1,11 @@
 import base64
 import binascii
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 from app.blob_configuration import blob_store_identity
 
 
@@ -12,6 +14,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = Field(default="sqlite:///./danaconnect.db", repr=False)
+    supabase_database_url: str = Field(default="", repr=False)
     database_pool_mode: Literal["queue", "null"] = "queue"
     vercel: bool = False
     trusted_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"]
@@ -60,6 +63,16 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def secure_configuration(self):
+        if self.supabase_database_url:
+            url = make_url(self.supabase_database_url)
+            if url.drivername not in {"postgresql", "postgresql+psycopg"} or not (
+                url.host and url.host.endswith(".pooler.supabase.com")
+            ):
+                raise ValueError("SUPABASE_DATABASE_URL must use the managed PostgreSQL pooler")
+            ca = Path(__file__).resolve().parents[1] / "assets/certs/supabase-prod-ca-2021.crt"
+            self.database_url = url.set(drivername="postgresql+psycopg").update_query_dict(
+                {"sslmode": "verify-full", "sslrootcert": str(ca)}
+            ).render_as_string(hide_password=False)
         # Marketplace Neon injects a standard PostgreSQL URL. Our installed
         # SQLAlchemy driver is psycopg, so make the driver explicit before use.
         for prefix in ("postgresql://", "postgres://"):

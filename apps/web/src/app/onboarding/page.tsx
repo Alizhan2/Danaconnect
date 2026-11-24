@@ -31,7 +31,7 @@ export default function OnboardingPage() {
   const load = useLoad(async () => {
     const [user, directions, documents, notifications, requirements] = await Promise.all([
       api<User>("/auth/me"),
-      api<Direction[]>("/directions"),
+      api<Direction[]>("/directions", { retry: true }),
       api<DocumentVersion[]>("/documents"),
       api<{ id: string; title: string; body: string }[]>("/notifications"),
       api<RegistrationRequirements>("/me/registration-requirements"),

@@ -101,6 +101,48 @@ def test_public_project_privacy_and_membership(project_api):
     assert call(client, "GET", f"/projects/{ids['project']}/private", "mentor").status_code == 403
 
 
+@pytest.mark.parametrize("who", ["mentor", "mentee"])
+def test_private_text_requires_renewed_nda_for_every_required_role(project_api, who):
+    client, factory, ids = project_api
+    with factory() as db:
+        db.get(Document, ids["nda_doc"]).required_roles = ["mentor", "mentee"]
+        db.add(ProjectMember(project_id=ids["project"], user_id=ids["mentee"], member_role="collaborator"))
+        db.commit()
+    path = f"/projects/{ids['project']}/private"
+    assert call(client, "GET", path, who).status_code == 403
+    with factory() as db:
+        db.add(Consent(user_id=ids[who], document_version_id=ids["nda"]))
+        db.commit()
+    assert call(client, "GET", path, who).json()["private_details"] == "SECRET NEVER PUBLIC"
+    with factory() as db:
+        version = DocumentVersion(document_id=ids["nda_doc"], version="2", content="Updated NDA",
+                                  content_hash="b" * 64, published_at=utcnow() + timedelta(seconds=1))
+        db.add(version)
+        db.commit()
+        version_id = version.id
+    denied = call(client, "GET", path, who)
+    assert denied.status_code == 403 and "SECRET" not in denied.text
+    with factory() as db:
+        db.add(Consent(user_id=ids[who], document_version_id=version_id))
+        db.commit()
+    assert call(client, "GET", path, who).status_code == 200
+    assert call(client, "GET", path, "stranger").status_code == 404
+
+
+@pytest.mark.parametrize("who", ["mentor", "mentee"])
+def test_private_text_denies_unpublished_required_nda(project_api, who):
+    client, factory, ids = project_api
+    with factory() as db:
+        document = Document(slug="unpublished-nda", title="Required NDA", scope="private_project",
+                            required_roles=["mentor", "mentee"])
+        db.add(document)
+        db.add(Consent(user_id=ids["mentor"], document_version_id=ids["nda"]))
+        db.add(ProjectMember(project_id=ids["project"], user_id=ids["mentee"], member_role="collaborator"))
+        db.commit()
+    response = call(client, "GET", f"/projects/{ids['project']}/private", who)
+    assert response.status_code == 503 and "SECRET" not in response.text
+
+
 def test_acceptance_is_atomic_and_messages_are_members_only(project_api):
     client, factory, ids = project_api
     created = apply(client, ids)

@@ -184,6 +184,42 @@ test('profile save publishes its refresh event only after a successful API updat
     else{await form.props.onSubmit({preventDefault:()=>{}});assert.deepEqual(steps,['PUT /me/profile','danaconnect:profile-updated','reload']);}
   }
 });
+test('opted-in directions reads recover from temporary server and network failures',async()=>{
+  for(const first of ['network',500,502,503,504]){
+    let calls=0;
+    const rt=runtime('web',{setTimeout:callback=>setTimeout(callback,0),fetch:async(url,options)=>{
+      calls++;assert.equal(options.retry,undefined);
+      if(calls===1){if(first==='network')throw new Error('Disconnected');return Response.json({detail:'Unavailable'},{status:first});}
+      return Response.json([{id:'live-direction'}]);
+    }});
+    assert.equal((await rt.load('lib/api.ts').api('/directions',{retry:true}))[0].id,'live-direction');
+    assert.equal(calls,2);
+  }
+});
+test('directions retries are bounded and retain the final request ID',async()=>{
+  let calls=0;const requestId='553ac0cf-319a-42ce-ac27-aa78a3b43353';
+  const rt=runtime('web',{setTimeout:callback=>setTimeout(callback,0),fetch:async()=>{
+    calls++;return Response.json({detail:'Still unavailable'},{status:503,headers:{'X-Request-ID':requestId}});
+  }});
+  await assert.rejects(rt.load('lib/api.ts').api('/directions',{retry:true}),e=>e.status===503&&e.requestId===requestId);
+  assert.equal(calls,3);
+});
+test('reads without opt-in, validation errors and mutations are never retried',async()=>{
+  for(const [status,options] of [[500,{}],[403,{retry:true}],[422,{retry:true}],[500,{retry:true,method:'POST',body:'{}'}]]){
+    let calls=0;
+    const rt=runtime('web',{fetch:async()=>{calls++;return Response.json({detail:'Failure'},{status});}});
+    await assert.rejects(rt.load('lib/api.ts').api('/directions',options));
+    assert.equal(calls,1);
+  }
+});
+test('cancelling a directions load during backoff prevents further requests',async()=>{
+  let calls=0;const controller=new AbortController();
+  const rt=runtime('web',{setTimeout:callback=>{controller.abort();callback();},fetch:async()=>{
+    calls++;return Response.json({detail:'Unavailable'},{status:503});
+  }});
+  await assert.rejects(rt.load('lib/api.ts').api('/directions',{retry:true,signal:controller.signal}),e=>e.status===0);
+  assert.equal(calls,1);
+});
 for(const app of ['web','admin']){
   test(`${app} config protects HTML responses with conservative headers`,async()=>{
     const config=runtime(app).load('../next.config.ts').default;

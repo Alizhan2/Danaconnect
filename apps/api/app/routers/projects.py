@@ -8,7 +8,7 @@ from app.auth import get_current_user, has_current_consents, require_active, req
 from app.profile_state import admitted_profile
 from app.project_access import project_is_public
 from app.database import get_db
-from app.models import Application, AuditEvent, Consent, Conversation, ConversationMember, Direction, Document, DocumentVersion, Message, Notification, Participation, ParticipationEvent, Project, ProjectMember, User
+from app.models import Application, AuditEvent, Conversation, ConversationMember, Direction, Message, Notification, Participation, ParticipationEvent, Project, ProjectMember, User
 from app.schemas.projects import ApplicationCreate, ApplicationDecision, MentorOfferCreate, MessageCreate, ProjectCreate, ProjectReview, ProjectUpdate
 
 
@@ -260,24 +260,12 @@ def edit_project(project_id: str, payload: ProjectUpdate, user: User = Depends(r
 
 @router.get("/projects/{project_id}/private")
 def private_project(project_id: str, user: User = Depends(require_active), db: Session = Depends(get_db)):
+    from app.routers.collaboration import private_permission
+
     project = db.get(Project, project_id)
     if project is None or not project_member(db, project, user):
         raise HTTPException(404, "Проект не найден или нет доступа к закрытым материалам")
-    if user.role == "mentor":
-        documents = db.scalars(select(Document).where(Document.active.is_(True), Document.scope == "private_project")).all()
-        accepted = set(db.scalars(select(Consent.document_version_id).where(Consent.user_id == user.id)).all())
-        applicable = False
-        for document in documents:
-            if document.required_roles and user.role not in document.required_roles:
-                continue
-            if document.direction_id and document.direction_id != project.direction_id:
-                continue
-            applicable = True
-            version = db.scalar(select(DocumentVersion).where(DocumentVersion.document_id == document.id).order_by(DocumentVersion.published_at.desc(), DocumentVersion.id.desc()).limit(1))
-            if version is None or version.id not in accepted:
-                raise HTTPException(403, "Подтвердите актуальный NDA для закрытых материалов проекта")
-        if not applicable:
-            raise HTTPException(403, "Для проекта ещё не опубликован актуальный NDA")
+    private_permission(db, project, user, require_mentor_nda=True)
     audit(db, user, "project.private_viewed", "project", project.id)
     commit(db)
     return {"id": project.id, "private_details": project.private_details}
