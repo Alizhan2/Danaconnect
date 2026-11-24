@@ -11,6 +11,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE_TYPES = {".py", ".ts", ".tsx", ".css", ".mjs", ".svg", ".ico"}
 PUBLIC_TYPES = {".svg", ".png", ".jpg", ".jpeg", ".webp", ".ico", ".woff", ".woff2"}
 FORBIDDEN_PARTS = {"node_modules", ".next", "__pycache__", "tests", "private_uploads", "backups", ".git", ".vercel"}
+RECOVERY_FILES = (
+    "deploy/postgres_backup.py",
+    "deploy/migrate_external.py",
+    "deploy/vercel_config.py",
+    "apps/api/assets/certs/supabase-prod-ca-2021.crt",
+    "docs/CLOUD_RUNBOOK.md",
+    "docs/LAUNCH_REMAINING.md",
+)
 
 
 def safe_file(path: Path) -> bool:
@@ -31,7 +39,7 @@ def safe_file(path: Path) -> bool:
 
 
 def collect_sources() -> dict[str, bytes]:
-    paths = set()
+    paths = {ROOT / name for name in RECOVERY_FILES}
     for name in ["README.md", ".gitignore", ".dockerignore", ".vercelignore", "vercel.json", "compose.prod.yml"]:
         paths.add(ROOT / name)
     for service in ["api", "web", "admin"]:
@@ -44,10 +52,9 @@ def collect_sources() -> dict[str, bytes]:
         if service != "api":
             paths.update(path for path in (directory / "public").rglob("*") if path.suffix.lower() in PUBLIC_TYPES)
     paths.update(path for path in (ROOT / "apps/api/assets/fonts").glob("*") if path.suffix.lower() in {".ttf", ".txt", ".md"})
-    paths.add(ROOT / "apps/api/assets/certs/supabase-prod-ca-2021.crt")
     paths.update(path for path in (ROOT / "scripts").rglob("*") if path.suffix in {".py", ".ps1", ".sh", ".mjs"})
-    paths.update(ROOT / "deploy" / name for name in ["generate_config.py", "readiness.py", "package_release.py", "vercel_config.py", "migrate_external.py", "configure_qstash.py", "provision_admin.py", "enrollment_qr.py", "activate_directions.py", "pilot_directions.json", "requirements.operator.txt", "compose.worker.yml", "Caddyfile", "s3-policy.example.json", "vercel.cron.example.json", ".env.production.example", ".env.worker.example", ".env.vercel.example"])
-    paths.update(ROOT / "docs" / name for name in ["CLOUD_RUNBOOK.md", "RELEASE_PREPARATION.md", "IMPLEMENTATION_STATUS.md", "PILOT_RELEASE_PLAN.md", "MONITORING_RUNBOOK.md", "BLOB_STORAGE.md", "ACTIVATION_STATUS.md", "OWNER_ACTIVATION.md", "QSTASH_RUNBOOK.md", "GIT_DEPLOYMENT.md", "TEAM_LAUNCH.md"])
+    paths.update(ROOT / "deploy" / name for name in ["generate_config.py", "readiness.py", "package_release.py", "configure_qstash.py", "provision_admin.py", "enrollment_qr.py", "activate_directions.py", "pilot_directions.json", "requirements.operator.txt", "compose.worker.yml", "Caddyfile", "s3-policy.example.json", "vercel.cron.example.json", ".env.production.example", ".env.worker.example", ".env.vercel.example"])
+    paths.update(ROOT / "docs" / name for name in ["RELEASE_PREPARATION.md", "IMPLEMENTATION_STATUS.md", "PILOT_RELEASE_PLAN.md", "MONITORING_RUNBOOK.md", "BLOB_STORAGE.md", "ACTIVATION_STATUS.md", "OWNER_ACTIVATION.md", "QSTASH_RUNBOOK.md", "GIT_DEPLOYMENT.md", "TEAM_LAUNCH.md"])
     contents = {}
     for path in sorted(paths):
         if not safe_file(path):
@@ -59,7 +66,7 @@ def collect_sources() -> dict[str, bytes]:
     if sum(map(len, contents.values())) > 64 * 1024 * 1024:
         raise ValueError("Release source size exceeds the limit")
     required = ["vercel.json", "apps/api/app/main.py", "apps/api/assets/fonts/DejaVuSans.ttf", "apps/api/assets/fonts/LICENSE-DejaVu.txt", "apps/web/package-lock.json", "apps/admin/package-lock.json"]
-    if any(name not in contents for name in required):
+    if any(name not in contents for name in (*required, *RECOVERY_FILES)):
         raise ValueError("Required release sources are missing")
     return contents
 

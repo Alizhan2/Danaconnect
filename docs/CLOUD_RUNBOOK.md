@@ -2,9 +2,9 @@
 
 ## Статус
 
-**Обновлено 3 октября 2026.** Рабочая платформа опубликована: [сайт](https://danaconnect.vercel.app/), [отдельная админка](https://danaconnect.vercel.app/admin). Подключены Neon PostgreSQL, Gmail SMTP, private Vercel Blob и QStash. Подтверждения и границы проверки: [облачный выпуск](VERIFICATION_2026-10-02.md), [мобильная приёмка](VERIFICATION_2026-10-03.md), [восстановление и нагрузка](RECOVERY_AND_LOAD_2026-10-03.md). Это наблюдения на указанное время; наличие сервиса не подтверждает все пользовательские сценарии.
+**Обновлено 25 ноября 2026, Asia/Aqtobe.** Рабочая база DanaConnect находится в Supabase, PostgreSQL 17.12, на тарифе Free. Сайт и панель администратора размещены на Vercel. [Рабочий сайт](https://danaconnect.vercel.app/), [вход в панель](https://danaconnect.vercel.app/admin/login), [состояние запуска](LAUNCH_REMAINING.md).
 
-Текущая схема — Vercel Services с внешними Neon и private Blob; QStash вызывает защищённый worker batch каждые две минуты. Дополнительно сохранён вариант Linux/Docker Compose: сайт, админка, FastAPI, постоянный worker, PostgreSQL и Caddy. Docker daemon в этой среде недоступен; Compose runtime не проверен. Его инструкции ниже относятся к отдельному варианту размещения.
+Vercel Services обслуживает сайт, панель администратора и API. Закрытые файлы хранятся в Vercel Blob. QStash вызывает обработчик фоновых задач. Октябрьские отчёты описывают прежнюю базу Neon. Инструкции ниже также охватывают отдельный вариант размещения на Linux с Docker Compose. [Облачный выпуск](VERIFICATION_2026-10-02.md), [мобильная приёмка](VERIFICATION_2026-10-03.md), [восстановление и нагрузка](RECOVERY_AND_LOAD_2026-10-03.md).
 
 ## Для альтернативного Compose и эксплуатации
 
@@ -121,16 +121,15 @@ docker compose --env-file deploy/.env.production -f compose.prod.yml logs --tail
 
 ## 4. Создать администратора с MFA
 
-На доверенном сервере, после миграций:
+Для установки через Compose оператор разрешает первый вход после применения миграций.
 
 ```bash
-docker compose --env-file deploy/.env.production -f compose.prod.yml exec api python -m app.admin_bootstrap --email admin@ваш-домен --name 'Имя администратора' --secret-output /tmp/admin.enrollment.json
-docker compose --env-file deploy/.env.production -f compose.prod.yml cp api:/tmp/admin.enrollment.json /защищённый/путь/admin.enrollment.json
+docker compose --env-file deploy/.env.production -f compose.prod.yml exec api python -m app.admin_bootstrap --email admin@example.org --name 'Имя администратора' --enroll-on-site
 ```
 
-Команда создаёт администратора и TOTP на сервере; публичного bootstrap API нет. Приватный файл с enrollment URI передать непосредственно владельцу аутентификатора. После импорта удалить обе копии конкретного файла; не сохранять его в Git, логах или backup-папке с открытым доступом. Для явно запрошенной ротации используется `--rotate-mfa`, что отзывает прежние сессии. API/worker имеют одного непривилегированного пользователя, `/tmp` доступен; enrollment создаётся с приватными разрешениями. После смены ключа outbox старый ключ нужен в `OUTBOX_PREVIOUS_ENCRYPTION_KEYS` до контролируемой перешифровки MFA и очереди.
+Подставьте адрес и имя администратора. Разрешение действует семь дней. На Vercel ту же операцию выполняет `deploy/provision_admin.py --enroll-on-site` с явно заданной конфигурацией базы. [Операторская команда и приглашения](TEAM_LAUNCH.md).
 
-В `/admin/login`: email OTP → TOTP. Производственный администратор без настроенной MFA не получает рабочую сессию. После входа подготовить утверждённые документы, переводы, направления и материалы; уведомления пользователям придут только при реально работающем worker и провайдере. Генерация документов не заменяет юридическое утверждение их текста.
+Владелец открывает `/admin/login` и подтверждает адрес кодом из письма. При первом входе сайт показывает личный QR и ключ для ручной настройки на том же устройстве. Код из приложения-аутентификатора завершает вход. Для ротации уже настроенного аутентификатора предусмотрен отдельный режим `--rotate-mfa` с отзывом прежних сессий. После смены ключа outbox сохраните старый ключ в `OUTBOX_PREVIOUS_ENCRYPTION_KEYS` до перешифровки MFA и очереди.
 
 ## 5. Backup и восстановление
 
