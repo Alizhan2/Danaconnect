@@ -44,21 +44,22 @@ def main() -> int:
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--email")
     parser.add_argument("--name")
-    parser.add_argument("--secret-output", type=Path,
-                        help="New *.enrollment.json inside deploy/enrollments")
+    enrollment = parser.add_mutually_exclusive_group()
+    enrollment.add_argument("--secret-output", type=Path, help="New *.enrollment.json inside deploy/enrollments")
+    enrollment.add_argument("--enroll-on-site", action="store_true", help="Show the QR at first login after email verification")
     parser.add_argument("--no-qr", action="store_true", help="Explicitly use manual MFA enrollment without a QR image")
     args = parser.parse_args()
     if not args.apply:
         print("Additional administrators have full admin permissions and require MFA.")
         print("No configuration read, database access, account creation or email performed.")
-        print("Use --apply with --env-file, --email, --name and --secret-output after owner authorization.")
+        print("Use --apply with --env-file, --email, --name and either --enroll-on-site or --secret-output.")
         return 0
-    if args.env_file is None or not args.email or not args.name or args.secret_output is None:
-        print("Apply requires an explicit private configuration, email, name and enrollment output.")
+    if args.env_file is None or not args.email or not args.name or not (args.secret_output or args.enroll_on_site):
+        print("Apply requires --env-file, --email, --name and an enrollment method.")
         return 2
     try:
-        output = enrollment_path(args.secret_output)
-        if not args.no_qr:
+        output = enrollment_path(args.secret_output) if args.secret_output else None
+        if output and not args.no_qr:
             if not importlib.util.find_spec("qrcode") or not importlib.util.find_spec("PIL"):
                 print("Install deploy/requirements.operator.txt before provisioning with QR enrollment.")
                 return 2
@@ -73,17 +74,23 @@ def main() -> int:
                 or values.get("AUTH_DEBUG_CODE", "").lower() != "false"):
             raise ValueError()
         environment = private_environment(values, migration_chain())
-        output.parent.mkdir(parents=True, exist_ok=True)
+        mode_args = ["--enroll-on-site"]
+        if output:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            mode_args = ["--secret-output", str(output)]
         with tempfile.TemporaryDirectory(prefix="danaconnect-admin-") as isolated:
             result = subprocess.run(
                 [sys.executable, "-m", "app.admin_bootstrap", "--email", args.email,
-                 "--name", args.name, "--secret-output", str(output)],
+                 "--name", args.name, *mode_args],
                 cwd=isolated, env=environment, capture_output=True, timeout=60,
             )
         if result.returncode != 0:
             print("Administrator creation was not confirmed. Review the account and output before retrying.")
-            print("Existing participant accounts and administrators with MFA are not overwritten.")
+            print("Check that the address is eligible for the selected enrollment method.")
             return 1
+        if args.enroll_on_site:
+            print("First-time MFA setup is available on the admin login page for seven days.")
+            return 0
         print("Administrator provisioned with MFA. Private enrollment saved at the requested location.")
         if not args.no_qr:
             try:
