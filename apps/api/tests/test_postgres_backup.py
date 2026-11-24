@@ -20,6 +20,8 @@ MAINTENANCE = operator.parse_connection("postgresql://local_operator:synthetic_l
 NAME = "danaconnect_restore_probe"
 SOURCE_LOCALE = {"encoding": 6, "provider": "b", "collate": "C.UTF-8", "ctype": "C.UTF-8", "locale": "C.UTF-8",
                  "icu_rules": None, "version": "1", "actual_version": "1"}
+SUPABASE_LOCALE = {"encoding": 6, "provider": "i", "collate": "en_US.UTF-8", "ctype": "en_US.UTF-8",
+                   "locale": "en-US", "icu_rules": None, "version": "153.120", "actual_version": "153.120"}
 CONTROL_LOCALE = {"encoding": 6, "provider": "c", "collate": "C", "ctype": "C", "locale": None,
                   "icu_rules": None, "version": None, "actual_version": None}
 SOURCE_ID = {"database_name": "live_database", "database_oid": "16384", "server_address": "192.0.2.5",
@@ -81,6 +83,11 @@ class FakeRunner:
             assert Path(env["PGPASSFILE"]).is_file()
         if name == "pg_dump":
             output.write(b"PGDMP\x01synthetic-custom-archive")
+        if name == "pg_restore" and "--list" in args and capture:
+            return (b"; contents\n5; 2615 2200 SCHEMA - public pg_database_owner\n"
+                    b"7; 1259 16389 TABLE public tasks postgres\n8; 0 16389 TABLE DATA public tasks postgres\n")
+        if name == "pg_restore" and "--use-list" in args:
+            self.restore_list = Path(args[args.index("--use-list") + 1]).read_bytes()
         if name == "pg_restore" and self.fail_restore and "--list" not in args:
             raise operator.BackupError("PostgreSQL operation failed; private diagnostics suppressed.")
         return b""
@@ -96,15 +103,92 @@ def test_custom_backup_binary_checksum_manifest_and_readonly_source(tmp_path):
     assert archive.read_bytes().startswith(b"PGDMP")
     manifest = operator.verify(archive)
     assert manifest["version"] == 2
+    assert manifest["scope"] == "database"
     assert manifest["source_identity"] == SOURCE_ID
     assert manifest["sha256"] == operator.checksum(archive)
     assert manifest["bytes"] == archive.stat().st_size
     dump = next(row for row in runner.calls if row[0] == "pg_dump")
     assert "--format=custom" in dump[1]
+    assert "--schema=public" not in dump[1]
     assert "default_transaction_read_only=on" in dump[2]["PGOPTIONS"]
     assert not Path(dump[2]["PGPASSFILE"]).exists()
     private_contents = b"".join(file.read_bytes() for file in archive.parent.iterdir())
     assert SOURCE.password.encode() not in private_contents
+
+
+def test_app_source_uses_managed_pooler_and_maintenance_uses_explicit_database_url(tmp_path):
+    pooler = "postgresql://backup.tenant:synthetic@aws-0-test.pooler.supabase.com:5432/postgres"
+    path = tmp_path / ".env.backup"
+    path.write_text(f"DATABASE_URL={SOURCE_URL}\nSUPABASE_DATABASE_URL={pooler}\n")
+    connection = operator.read_connection(path, source=True)
+    assert connection.host == "aws-0-test.pooler.supabase.com" and connection.public_only
+    assert dict(connection.options)["sslmode"] == "verify-full"
+    assert Path(dict(connection.options)["sslrootcert"]).is_file()
+    assert operator.read_connection(path) == SOURCE
+    path.write_text(f"DATABASE_URL={SOURCE_URL}\nSUPABASE_DATABASE_URL={SOURCE_URL}\n")
+    with pytest.raises(operator.BackupError, match="pooler"):
+        operator.read_connection(path, source=True)
+
+
+@pytest.mark.parametrize("outage", [False, True])
+def test_project_scoped_archive_restores_between_two_postgres_databases(tmp_path, monkeypatch, outage):
+    source = operator.replace(SOURCE, database="postgres", user="reader.project", public_only=True)
+    monkeypatch.setitem(SOURCE_ID, "database_name", "postgres")
+    monkeypatch.setitem(SOURCE_ID, "database_oid", "5")
+    monkeypatch.setitem(SOURCE_ID, "server_version_num", 170012)
+    runner = FakeRunner(live_locale_override=SUPABASE_LOCALE, target_locale_override=SUPABASE_LOCALE,
+                        control_version=170012)
+    archive = operator.backup(source, tmp_path, runner)
+    manifest = operator.verify(archive)
+    assert manifest["scope"] == "public"
+    assert "--schema=public" in next(row[1] for row in runner.calls if row[0] == "pg_dump")
+    runner.calls.clear()
+    with pytest.raises(operator.BackupError, match="Source route"):
+        operator.restore(operator.replace(source, user="reader.otherproject"), MAINTENANCE, NAME,
+                         archive, runner, source_unavailable=outage)
+    assert runner.calls == []
+    operator.restore(operator.replace(source, user="otherrole.project", password="rotated"), MAINTENANCE, NAME,
+                     archive, runner, source_unavailable=outage)
+    creation = next(row[3] for row in runner.calls if row[0] == "psql")
+    assert "LOCALE_PROVIDER icu ICU_LOCALE 'en-US' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8'" in creation
+    assert runner.restore_list == (b"; contents\n7; 1259 16389 TABLE public tasks postgres\n"
+                                   b"8; 0 16389 TABLE DATA public tasks postgres\n")
+    restore_args = next(row[1] for row in runner.calls if row[0] == "pg_restore" and "--use-list" in row[1])
+    assert "--single-transaction" in restore_args and "--no-acl" in restore_args
+    assert not Path(restore_args[restore_args.index("--use-list") + 1]).exists()
+
+
+def test_older_scope_less_v2_archive_still_restores(tmp_path):
+    archive = synthetic_archive(tmp_path)
+    path = Path(str(archive) + ".manifest.json")
+    manifest = json.loads(path.read_text())
+    del manifest["scope"]
+    path.write_text(json.dumps(manifest))
+    operator.restore(SOURCE, MAINTENANCE, NAME, archive, FakeRunner())
+
+
+@pytest.mark.parametrize("changes", [{"actual_version": "older"}, {"locale": "en-GB"}, {"icu_rules": "custom"},
+                                     {"collate": "C"}, {"version": None, "actual_version": None}])
+def test_unsupported_icu_restore_is_refused_before_creation(tmp_path, changes):
+    archive = synthetic_archive(tmp_path)
+    change_manifest_locale(archive, {**SUPABASE_LOCALE, **changes})
+    runner = FakeRunner()
+    with pytest.raises(operator.BackupError, match="Source locale"):
+        operator.restore(SOURCE, MAINTENANCE, NAME, archive, runner)
+    assert runner.calls == []
+
+
+def test_icu_version_mismatch_and_os_exception_refused(tmp_path):
+    source_runner = FakeRunner(live_locale_override=SUPABASE_LOCALE)
+    archive = operator.backup(SOURCE, tmp_path, source_runner)
+    wrong_target = {**SUPABASE_LOCALE, "version": "152", "actual_version": "152"}
+    runner = FakeRunner(live_locale_override=SUPABASE_LOCALE, target_locale_override=wrong_target)
+    with pytest.raises(operator.BackupError, match="OS locale exception"):
+        operator.restore(SOURCE, MAINTENANCE, NAME, archive, runner, allow_os_locale_difference=True)
+    assert runner.calls == []
+    with pytest.raises(operator.BackupError, match="Target encoding/provider/locale"):
+        operator.restore(SOURCE, MAINTENANCE, NAME, archive, runner)
+    assert not any(row[0] == "pg_restore" and "--list" not in row[1] for row in runner.calls)
 
 
 def test_repeated_backup_does_not_overwrite_any_archive(tmp_path):

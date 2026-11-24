@@ -2,6 +2,28 @@ import { growthTranslations } from "@/components/growth/translations";
 /** Russian source phrases map to Kazakh and English. User-generated text is never passed here. */
 export const phraseTranslations: Record<string, readonly [string, string]> = {
   ...growthTranslations,
+  "Отсканируйте QR в приложении-аутентификаторе, затем введите шестизначный код.": [
+    "Аутентификатор қолданбасында QR-кодты сканерлеп, алты таңбалы кодты енгізіңіз.", "Scan the QR code in your authenticator app, then enter its six-digit code.",
+  ],
+  "Введите шестизначный код из приложения.": [
+    "Қолданбадағы алты таңбалы кодты енгізіңіз.", "Enter the six-digit code from your app.",
+  ],
+  "Срок подтверждения истёк. Запросите новый код на почту.": [
+    "Растау уақыты аяқталды. Электрондық поштаға жаңа код сұратыңыз.", "Verification expired. Request a new email code.",
+  ],
+  "Добавьте DanaConnect в приложение-аутентификатор": [
+    "DanaConnect аккаунтын аутентификатор қолданбасына қосыңыз", "Add DanaConnect to your authenticator app",
+  ],
+  "QR-код для настройки аутентификатора": [
+    "Аутентификаторды баптауға арналған QR-код", "QR code for setting up your authenticator",
+  ],
+  "QR не загрузился. Используйте ключ для ручной настройки.": [
+    "QR-код жүктелмеді. Қолмен баптау үшін кілтті пайдаланыңыз.", "The QR code could not load. Use the manual setup key.",
+  ],
+  "Ввести ключ вручную": ["Кілтті қолмен енгізу", "Enter the key manually"],
+  "Выберите одноразовые коды по времени (TOTP) и введите ключ.": [
+    "Уақытқа негізделген бір реттік кодтарды (TOTP) таңдап, кілтті енгізіңіз.", "Select time-based codes (TOTP) and enter the key.",
+  ],
   "Обязательные документы ещё не опубликованы командой платформы. Отправка анкеты станет доступна после публикации.": [
     "Платформа командасы міндетті құжаттарды әлі жарияламады. Сауалнаманы жарияланғаннан кейін жіберуге болады.",
     "The platform team has not published the required documents yet. You can submit your profile after they are published.",

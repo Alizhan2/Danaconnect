@@ -1,11 +1,11 @@
 "use client";
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { Button, Field } from "@/components/ui";
 import { usePlatformStatus } from "@/components/platform-status";
 import { useLocale } from "@/lib/i18n";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { User } from "@/lib/types";
 import { onboardingPath, participantRole } from "@/lib/registration";
 import {
@@ -26,6 +26,7 @@ type MfaChallenge = {
   mfa_challenge_id: string;
   method: "totp";
   expires_in: number;
+  enrollment?: { qr_data_url: string; manual_entry_key: string };
 };
 function Login() {
   const { locale, t, tr } = useLocale();
@@ -38,13 +39,53 @@ function Login() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [challenge, setChallenge] = useState<Challenge>();
-  const [mfa, setMfa] = useState<MfaChallenge>();
+  const [mfa, setMfa] = useState<MfaChallenge & { deadline: number }>();
+  const [expired, setExpired] = useState(false);
+  const [qrFailed, setQrFailed] = useState(false);
+  const attempt = useRef(0);
+  const resetLogin = useCallback((timedOut = false) => {
+    attempt.current++;
+    setChallenge(undefined);
+    setMfa(undefined);
+    setCode("");
+    setExpired(timedOut);
+    setQrFailed(false);
+  }, []);
+  useEffect(() => {
+    const leave = () => resetLogin();
+    const restore = (event: PageTransitionEvent) => { if (event.persisted) resetLogin(); };
+    window.addEventListener("pagehide", leave);
+    window.addEventListener("pageshow", restore);
+    return () => {
+      attempt.current++;
+      window.removeEventListener("pagehide", leave);
+      window.removeEventListener("pageshow", restore);
+    };
+  }, [resetLogin]);
+  const deadline = mfa?.deadline;
+  useEffect(() => {
+    if (deadline === undefined) return;
+    const checkTime = () => {
+      if (Date.now() >= deadline) resetLogin(true);
+    };
+    const timer = window.setTimeout(checkTime, Math.max(0, deadline - Date.now()));
+    document.addEventListener("visibilitychange", checkTime);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", checkTime);
+    };
+  }, [deadline, resetLogin]);
+  const enrollment = mfa?.enrollment;
+  const image = enrollment?.qr_data_url;
+  const showQr = !qrFailed && typeof image === "string" && image.length <= 200000 &&
+    /^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+={0,2}$/.test(image);
   const providers = useLoad(() =>
     api<{ email: boolean; google: boolean; admin_mfa: boolean }>(
       "/auth/providers",
     ),
   );
   function finish(user: User) {
+    resetLogin();
     router.push(
       user.role === "unchosen" || user.account_status !== "active" || (user.role !== "admin" && user.profile_completed === false)
         ? onboardingPath(user.role === "unchosen" ? role : undefined, returnTo)
@@ -54,31 +95,45 @@ function Login() {
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
+    const currentAttempt = attempt.current;
     await action.run(
       async () => {
         if (mfa) {
-          finish(
-            await mutate<User>("/auth/mfa/verify", {
+          if (Date.now() >= mfa.deadline) {
+            resetLogin(true);
+            return;
+          }
+          try {
+            const user = await mutate<User>("/auth/mfa/verify", {
               mfa_challenge_id: mfa.mfa_challenge_id,
               code,
-            }),
-          );
+            });
+            if (currentAttempt === attempt.current) finish(user);
+          } catch (error) {
+            if (currentAttempt !== attempt.current) return;
+            if (error instanceof ApiError && error.status === 410) {
+              resetLogin(true);
+              return;
+            }
+            throw error;
+          }
         } else if (!challenge) {
-          setChallenge(
-            await mutate<Challenge>("/auth/request-code", { email, locale }),
-          );
+          setExpired(false);
+          const issued = await mutate<Challenge>("/auth/request-code", { email, locale });
+          if (currentAttempt === attempt.current) setChallenge(issued);
         } else {
           const response = await mutate<User | MfaChallenge>(
             "/auth/verify-code",
             { challenge_id: challenge.challenge_id, code },
           );
+          if (currentAttempt !== attempt.current) return;
           if ("mfa_required" in response) {
-            setMfa(response);
+            setMfa({ ...response, deadline: Date.now() + response.expires_in * 1000 });
             setCode("");
           } else finish(response);
         }
       },
-      !challenge ? "Код запрошен" : mfa ? "Вход выполнен" : "Код проверен",
+      !challenge ? "Код запрошен" : mfa ? "" : "Код проверен",
     );
   }
   async function google() {
@@ -103,12 +158,28 @@ function Login() {
           <h1>{mfa ? tr("Защита аккаунта") : t.login}</h1>
           {role && !mfa && <p className="notice">{tr(role === "mentor" ? "Регистрация ментора: подтвердите свою почту, затем заполните анкету." : "Регистрация менти: подтвердите свою почту, затем заполните анкету.")}</p>}
           <p>
-            {tr("Войдите по одноразовому коду.")}
+            {tr(enrollment ? "Отсканируйте QR в приложении-аутентификаторе, затем введите шестизначный код."
+              : mfa ? "Введите шестизначный код из приложения." : "Войдите по одноразовому коду.")}
             {health?.demo_mode && (
               <> {tr("Для демонстрации используйте только учебный email.")}</>
             )}
           </p>
-          <ActionNotice action={action} />
+          {expired ? <p className="notice" role="status">{tr("Срок подтверждения истёк. Запросите новый код на почту.")}</p> : <ActionNotice action={action} />}
+          {enrollment && (
+            <section aria-labelledby="authenticator-setup" className="stack">
+              <h2 id="authenticator-setup">{tr("Добавьте DanaConnect в приложение-аутентификатор")}</h2>
+              {showQr ? (
+                <img src={image} alt={tr("QR-код для настройки аутентификатора")}
+                  width={256} height={256} style={{ maxWidth: "100%", height: "auto" }}
+                  referrerPolicy="no-referrer" onError={() => setQrFailed(true)} />
+              ) : <p role="status">{tr("QR не загрузился. Используйте ключ для ручной настройки.")}</p>}
+              <details>
+                <summary>{tr("Ввести ключ вручную")}</summary>
+                <p>{tr("Выберите одноразовые коды по времени (TOTP) и введите ключ.")}</p>
+                <code style={{ overflowWrap: "anywhere" }}>{enrollment.manual_entry_key}</code>
+              </details>
+            </section>
+          )}
           {!mfa && (challenge?.delivery_status === "queued" || challenge?.delivery_status === "sent") && (
             <div className="notice">
               {tr(
@@ -149,7 +220,7 @@ function Login() {
                     onChange={(event) => setCode(event.target.value)}
                   />
                 </Field>
-                {challenge.debug_code && health?.demo_mode && (
+                {!mfa && challenge.debug_code && health?.demo_mode && (
                   <div className="notice">
                     {tr("Режим разработки: код")}{" "}
                     <strong>{challenge.debug_code}</strong>
@@ -171,9 +242,7 @@ function Login() {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setChallenge(undefined);
-                  setMfa(undefined);
-                  setCode("");
+                  resetLogin();
                   action.clear();
                 }}
               >

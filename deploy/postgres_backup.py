@@ -9,8 +9,8 @@ https://www.postgresql.org/docs/current/app-pgrestore.html
 Archives contain sensitive application data, but not object-store files, global
 roles or application encryption keys. They need separate encrypted offsite
 storage. This tool never drops databases, cleans objects or promotes a restore.
-Locale-preserving restore currently supports only UTF8 with PostgreSQL's builtin
-provider on the same server major version. Other providers/locales are refused.
+Locale-preserving restore supports selected UTF8 builtin locales and Supabase's
+UTF8 ICU en-US configuration on the same PostgreSQL major version.
 An explicit --allow-os-locale-difference is restricted to a loopback restore and
 builtin C.UTF-8. It permits only differing OS LC_COLLATE/LC_CTYPE metadata; the
 builtin locale, encoding and recorded/actual collation versions must match.
@@ -65,6 +65,7 @@ class Connection:
     password: str
     database: str
     options: tuple[tuple[str, str], ...]
+    public_only: bool = False
 
 
 def loopback_host(host: str) -> bool:
@@ -108,7 +109,7 @@ def parse_connection(value: str) -> Connection:
     return Connection(host, port, user, password, database, tuple(sorted(options.items())))
 
 
-def read_connection(path: Path) -> Connection:
+def read_connection(path: Path, *, source: bool = False) -> Connection:
     # Reuse the existing strict, non-expanding, explicit-file dotenv parser.
     sys.path.insert(0, str(ROOT / "deploy"))
     try:
@@ -117,6 +118,13 @@ def read_connection(path: Path) -> Connection:
             values = read_env(path)
         except ConfigError:
             raise BackupError("The explicit configuration file could not be read safely.") from None
+        if source and (pooler_url := values.get("SUPABASE_DATABASE_URL")):
+            from migrate_external import OperatorError, postgres_url
+            try:
+                connection = parse_connection(postgres_url(pooler_url, supabase_pooler=True))
+            except (OperatorError, ValueError):
+                raise BackupError("Supabase source pooler configuration is invalid.") from None
+            return replace(connection, public_only=True)
     finally:
         sys.path.pop(0)
     return parse_connection(values.get("DATABASE_URL", ""))
@@ -246,9 +254,13 @@ def checked_locale(value) -> dict:
 
 def supported_restore_locale(identity: dict) -> dict:
     locale = checked_locale(identity.get("database_locale"))
-    if (locale["encoding"] != 6 or locale["provider"] != "b" or locale["locale"] not in BUILTIN_LOCALES
-            or locale["collate"] not in LIBC_LOCALE_SETTINGS or locale["ctype"] not in LIBC_LOCALE_SETTINGS
-            or locale["icu_rules"] is not None or locale["version"] != locale["actual_version"]
+    builtin = (locale["provider"] == "b" and locale["locale"] in BUILTIN_LOCALES
+               and locale["collate"] in LIBC_LOCALE_SETTINGS and locale["ctype"] in LIBC_LOCALE_SETTINGS
+               and locale["icu_rules"] is None)
+    icu = (locale["provider"] == "i" and locale["locale"] == "en-US"
+           and locale["collate"] == locale["ctype"] == "en_US.UTF-8"
+           and locale["icu_rules"] in (None, "") and bool(locale["version"]))
+    if (locale["encoding"] != 6 or not (builtin or icu) or locale["version"] != locale["actual_version"]
             or identity["server_version_num"] < 170000):
         raise BackupError("Source locale is unsupported or its recorded collation version differs from the actual provider version; restoration was refused.")
     return locale
@@ -256,8 +268,13 @@ def supported_restore_locale(identity: dict) -> dict:
 
 def creation_sql(name: str, locale: dict, allow_os_locale_difference: bool = False) -> str:
     # name and every interpolated locale identifier are already whitelisted.
-    statement = (f'CREATE DATABASE "{name}" TEMPLATE template0 ENCODING \'UTF8\' '
-                 f"LOCALE_PROVIDER builtin BUILTIN_LOCALE '{locale['locale']}'")
+    statement = f'CREATE DATABASE "{name}" TEMPLATE template0 ENCODING \'UTF8\' '
+    if locale["provider"] == "i":
+        statement += "LOCALE_PROVIDER icu ICU_LOCALE 'en-US'"
+        if locale["icu_rules"] == "":
+            statement += " ICU_RULES ''"
+    else:
+        statement += f"LOCALE_PROVIDER builtin BUILTIN_LOCALE '{locale['locale']}'"
     if not allow_os_locale_difference:
         statement += f" LC_COLLATE '{locale['collate']}' LC_CTYPE '{locale['ctype']}'"
     return statement + ";"
@@ -299,6 +316,19 @@ def checksum(path: Path) -> str:
     return digest.hexdigest()
 
 
+def pooler_fingerprint(connection: Connection) -> str:
+    # The shared pooler routes <role>.<project> to a project. Production
+    # databases on different projects commonly share both name and OID.
+    project = connection.user.rsplit(".", 1)[-1]
+    route = [connection.host.lower(), connection.port, project, connection.database]
+    return hashlib.sha256(json.dumps(route).encode("utf-8")).hexdigest()
+
+
+def check_source_route(source: Connection, manifest: dict) -> None:
+    if manifest.get("scope") == "public" and manifest["source_route_sha256"] != pooler_fingerprint(source):
+        raise BackupError("Source route does not match the application archive.")
+
+
 def backup(connection: Connection, output_directory: Path, runner: PgRunner, snapshot: str | None = None) -> Path:
     if snapshot is not None and not SNAPSHOT_ID.fullmatch(snapshot):
         raise BackupError("Snapshot identifier is invalid.")
@@ -312,6 +342,8 @@ def backup(connection: Connection, output_directory: Path, runner: PgRunner, sna
         with path.open("xb") as handle:
             restrict_path(path)
             dump_args = ["--format=custom", "--no-password", "--lock-wait-timeout=10s"]
+            if connection.public_only:
+                dump_args.append("--schema=public")
             if snapshot is not None:
                 dump_args.append("--snapshot=" + snapshot)
             runner.run("pg_dump", dump_args,
@@ -321,7 +353,10 @@ def backup(connection: Connection, output_directory: Path, runner: PgRunner, sna
         private_file(Path(str(path) + ".sha256"), (digest + "  " + path.name + "\n").encode("ascii"))
         manifest = {"version": 2, "format": "postgresql-custom", "sha256": digest,
                     "bytes": path.stat().st_size, "created_at": datetime.now(timezone.utc).isoformat(),
-                    "source_identity": identity, "external_snapshot_used": snapshot is not None}
+                    "source_identity": identity, "external_snapshot_used": snapshot is not None,
+                    "scope": "public" if connection.public_only else "database"}
+        if connection.public_only:
+            manifest["source_route_sha256"] = pooler_fingerprint(connection)
         private_file(Path(str(path) + ".manifest.json"), (json.dumps(manifest, sort_keys=True) + "\n").encode("utf-8"))
         return path
 
@@ -349,6 +384,11 @@ def verify(path: Path) -> dict:
                 or manifest.get("sha256") != digest or manifest.get("bytes") != path.stat().st_size):
             raise BackupError("Archive manifest does not match the archive.")
         checked_identity(manifest.get("source_identity"))
+        scope = manifest.get("scope", "database")
+        if scope not in ("public", "database"):
+            raise BackupError("Archive scope is unsupported.")
+        if scope == "public" and not re.fullmatch("[0-9a-f]{64}", str(manifest.get("source_route_sha256", ""))):
+            raise BackupError("Application archive has an invalid source route fingerprint.")
         return manifest
     except (OSError, UnicodeError, ValueError):
         raise BackupError("Archive verification failed; no private file contents were disclosed.") from None
@@ -360,16 +400,31 @@ def target_name(value: str, source_names: set[str]) -> str:
     return value
 
 
+def restore_contents(path: Path, runner: PgRunner, public_only: bool) -> bytes | None:
+    contents = runner.run("pg_restore", ["--list", str(path)], capture=public_only)
+    if not public_only:
+        return None
+    # template0 already supplies public with its own ownership and privileges.
+    # Keep the original TOC order and every object within public. Only omit
+    # creation of the schema itself (catalog class pg_namespace has OID 2615).
+    lines = contents.split(b"\n")
+    if not any(re.match(rb"^[0-9]+;", line) for line in lines):
+        raise BackupError("Application archive contents could not be verified.")
+    schema = re.compile(rb"^[0-9]+; 2615 [0-9]+ SCHEMA - public(?:\s|$)")
+    return b"\n".join(line for line in lines if not schema.match(line))
+
+
 def restore(source: Connection, maintenance: Connection, name: str, path: Path, runner: PgRunner,
             allow_os_locale_difference: bool = False, source_unavailable: bool = False) -> None:
     manifest = verify(path)
+    check_source_route(source, manifest)
     target_name(name, {source.database, manifest["source_identity"]["database_name"]})
     source_locale = supported_restore_locale(manifest["source_identity"])
     validate_os_locale_exception(source_locale, maintenance, allow_os_locale_difference)
     recorded = manifest["source_identity"]
     validate_unavailable_source(source, maintenance, recorded, source_unavailable)
     # Validate the archive before any database mutation.
-    runner.run("pg_restore", ["--list", str(path)])
+    contents = restore_contents(path, runner, manifest.get("scope") == "public")
     with connection_environment(maintenance) as control_env:
         if source_unavailable:
             print("WARNING: Source-unavailable recovery skips all live source connections. Live source identity has not been verified; archive/configuration checks and target guards apply. Promotion has not been verified.", file=sys.stderr)
@@ -411,8 +466,13 @@ EXISTS (SELECT 1 FROM pg_extension WHERE extname <> 'plpgsql') OR
 EXISTS (SELECT 1 FROM pg_largeobject_metadata)));""")
             if empty is not True:
                 raise BackupError("The newly created target is not empty; restoration was refused.")
-            runner.run("pg_restore", ["--no-password", "--no-owner", "--no-acl", "--no-tablespaces",
-                                      "--single-transaction", "--exit-on-error", "--dbname=" + name, str(path)], env=target_env)
+            restore_args = ["--no-password", "--no-owner", "--no-acl", "--no-tablespaces",
+                            "--single-transaction", "--exit-on-error", "--dbname=" + name]
+            if contents is not None:
+                list_path = Path(target_env["PGPASSFILE"]).parent / "restore.list"
+                private_file(list_path, contents)
+                restore_args.extend(["--use-list", str(list_path)])
+            runner.run("pg_restore", [*restore_args, str(path)], env=target_env)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -445,13 +505,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if not 1 <= args.timeout_seconds <= 3600:
             raise BackupError("Operation timeout must be between 1 and 3600 seconds.")
-        source = read_connection(args.source_env_file)
+        source = read_connection(args.source_env_file, source=True)
         if args.command == "backup" and args.snapshot is not None and not SNAPSHOT_ID.fullmatch(args.snapshot):
             raise BackupError("Snapshot identifier is invalid.")
         runner = PgRunner(args.pg_bin_directory, args.timeout_seconds)
         if args.command == "restore":
             maintenance = read_connection(args.target_env_file)
             manifest = verify(args.backup_file)
+            check_source_route(source, manifest)
             target_name(args.target_database, {source.database, manifest["source_identity"]["database_name"]})
             locale = supported_restore_locale(manifest["source_identity"])
             validate_os_locale_exception(locale, maintenance, args.allow_os_locale_difference)

@@ -113,6 +113,36 @@ test('admin MFA and navigation labels exist in all three locales',()=>{
     for(const label of ['mfa','mfaCode','mfaExpired','mfaInvalid','mfaTimeLeft','directions','documents','registrations','operations'])assert.ok(t(label));
   }
 });
+
+test('public login shows only the verified enrollment QR and retains manual setup if the image fails',()=>{
+  const manualKey='SYNTHETIC-SETUP-KEY';
+  const dataUrl='data:image/svg+xml;base64,PHN2Zy8+';
+  const mfa={mfa_required:true,mfa_challenge_id:'test-challenge',method:'totp',expires_in:300,deadline:Date.now()+300000};
+  for(const [qr,failed,expectedImage,expectedKey] of [
+    [undefined,false,false,false],
+    [dataUrl,false,true,true],
+    [dataUrl,true,false,true],
+    ['https://example.invalid/qr.png',false,false,true],
+  ]){
+    const response=qr?{...mfa,enrollment:{qr_data_url:qr,manual_entry_key:manualKey}}:mfa;
+    const rt=runtime('web',{
+      states:['admin@example.test','',{challenge_id:'test-email'},response,false,failed],
+      privateFunctions:{'app/login/page.tsx':['Login']},
+      modules:{
+        'next/navigation':{useRouter:()=>({}),useSearchParams:()=>new URLSearchParams()},
+        '@/components/shell':{AppShell:'shell'},
+        '@/components/platform-status':{usePlatformStatus:()=>({})},
+        '@/lib/i18n':{useLocale:()=>({locale:'ru',t:{},tr:value=>value})},
+        '@/components/workflows/common':{useAction:()=>({}),useLoad:()=>({}),safeReturnTo:()=>'/dashboard'},
+      },
+    });
+    const tree=nodes(rt.load('app/login/page.tsx').__Login());
+    const img=tree.find(node=>node?.type==='img');
+    assert.equal(Boolean(img),expectedImage);
+    if(img){assert.equal(img.props.src,dataUrl);assert.equal(img.props.referrerPolicy,'no-referrer');}
+    assert.equal(tree.includes(manualKey),expectedKey);
+  }
+});
 test('admin locale settings keep working when browser storage is blocked',()=>{
   const rt=runtime('admin',{localStorage:{getItem:()=>{throw new Error('Storage blocked');},setItem:()=>{throw new Error('Storage blocked');}}});
   rt.load('lib/i18n.tsx').LocaleProvider({children:null});
